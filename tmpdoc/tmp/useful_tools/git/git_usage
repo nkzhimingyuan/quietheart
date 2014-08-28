@@ -66,6 +66,7 @@ $git checkout --orphan <branchname>
 *创建分支并切换入新创建的分支：
 
 $git checkout -b <branch name>
+另外，如果是从remote获取的，本地无br1分支，那么可以用：git checkout -b br1 origin/xx/br1
 
 
 
