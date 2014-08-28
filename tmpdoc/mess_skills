@@ -880,6 +880,48 @@ c. 执行startx。提示“.../usr/bin/X:No such file or directory”
 d. 执行sudo apt-get install xserver-xorg
 e. 重启即可
 
+39)ssh通过http_proxy访问外网，ssh的gerrit无法访问。
+情况如下：
+$cat ~/.ssh/config
+Host gerrit
+Hostname 172.20.30.2
+port 29419
+User miracle.lv
+IdentityFile ~/.ssh/id_rsa
+
+Host gerrit-master
+Hostname xxxx.com
+#Hostname 172.27.221.226
+port 29418
+User miracle.lv
+IdentityFile ~/.ssh/id_rsa
+这里，gerrit的29419做为gerrit-master的镜像。我们通过http_proxy访问xxxx.com。
+
+上传好sshkey和做好如上配置之后，也设置了http_proxy=172.20.32.232:8080，可是运行：
+ssh xxxx.com
+出现超时。
+
+参照：http://blog.sina.com.cn/s/blog_a584f4e401013m38.html的提示，做如下：
+#apt-get install connect-proxy
+$vim ~/.ssh/config
+Host gerrit
+Hostname 172.20.30.2
+port 29419
+User miracle.lv
+IdentityFile ~/.ssh/id_rsa
+
+Host gerrit-master
+ProxyCommand connect -H '172.20.32.232:8080' %h %p
+Hostname xxxx.com
+#Hostname 172.27.221.226
+port 29418
+User miracle.lv
+IdentityFile ~/.ssh/id_rsa
+
+再运行:
+	ssh xxxx.com
+这样就出现了gerrit特定的欢迎信息。
+
 ============================
 3）解决亲身实践的问题：}
 
