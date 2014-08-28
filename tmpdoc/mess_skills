@@ -920,7 +920,7 @@ IdentityFile ~/.ssh/id_rsa
 
 再运行:
 	ssh xxxx.com
-这样就出现了gerrit特定的欢迎信息。
+这样就出现了gerrit特定的欢迎信息,此时都不用http_proxy。
 
 ============================
 3）解决亲身实践的问题：}
