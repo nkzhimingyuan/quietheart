@@ -1,0 +1,112 @@
+使用github进行项目管理
+
+
+
+简易使用：
+
+1、注册
+
+注册网址为：https://github.com/
+
+注册之后，可以添加一个库，假设这里添加的库为
+
+https://github.com/vaqeteart/quietheart.git
+
+需要邮箱验证一下。
+
+
+
+这里我使用的账户名是：vaqeteart
+
+之后的访问：
+
+https://github.com/vaqeteart
+
+
+
+2、向库中添加文件
+
+首先将库下载下来：
+
+$git clone https://github.com/vaqeteart/quietheart.git
+
+
+
+查看配置，确保能有如下配置：
+
+$ git config user.email=vaqeteart@qq.com
+$ git config user.name=vaqeteart
+
+$git remote add origin https://github.com/vaqeteart/quietheart.git
+
+为了能够缓存授权信息，以后不必每次都输入授权的配置：
+
+$git config --global credential.helper cache
+
+$git config --global credential.helper 'cache --timeout=3600'
+
+
+
+修改、提交、push：
+
+$vim ...
+
+$git add ...
+
+$git commit -m 'xxx'
+
+$git push -u origin master
+
+
+
+3、添加自己的主页：
+
+可以在github上面创建自己的博客。
+
+$git checkout --orphan gh-pages
+
+$git rm -r *
+
+$echo hello >index.html
+
+$git add .
+
+$git commit -m 'xxx'
+
+$git push -u origin gh-pages
+
+主页的分支必须是gh-pages，添加之后，10分钟后，就会通过
+
+vaqeteart.github.com/quietheart
+
+或
+
+http://vaqeteart.github.io/quietheart/
+
+访问相应主页。
+
+
+
+
+
+ 参考资料：
+
+https://help.github.com/articles/creating-project-pages-manually
+
+https://help.github.com/articles/using-jekyll-with-pages
+
+http://www.ruanyifeng.com/blog/2012/08/blogging_with_jekyll.html
+
+http://www.07net01.com/program/239652.html
+
+
+
+使用oschina做为项目托管
+
+使用方式和github一样，
+
+网站：
+
+http://git.oschina.net/quietheart/quietheart
+
+由于git是分布式开发，所以可以做为github防止被国内墙掉的一个备份。
