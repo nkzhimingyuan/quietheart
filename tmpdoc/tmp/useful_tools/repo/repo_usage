@@ -2,6 +2,8 @@ repo
 
 Android 使用 Git 作为代码管理工具，开发了 Gerrit 进行代码审核以便更好的对代码进行集中式管理，还开发了 Repo 命令行工具，对 Git 部分命令封装，将百多个 Git 库有效的进行组织。 Android 是由 kernel、Dalvik、Bionic、prebuilt、build 等多个 Git 项目组成，所以 Android 项目编写了一个名为 Repo 的 Python 的脚本来统一管理这些项目的仓库，使得 Git 的使用更加简单。
 
+使用repo前先下载repo脚本。
+
 
 
 repo常用命令：
@@ -14,15 +16,17 @@ $repo init  -u git://172.16.1.31/manifest.git
 
 语法格式是：repo init –u URL [OPTIONS]
 
--u:指定一个URL，其连接到一个maniest仓库
+-u:指定一个URL，其连接到一个manifest仓库
 
 -m:在manifest仓库中选择一个xml文件
 
 -b:选择一个maniest仓库中的一个特殊的分支
 
+上面所说的repo, 开始可能只是一个简单的叫repo的shell脚本. 这其实只是个皮. 真正的repo是python的脚本, 要用repo init来下载.用repo init来获取真正的repo(python写成的)的git仓库, 以及Android源码的列表信息(manifest)的git仓库.
+
 命令repo init 要完成如下操作：
 
-完成repo工具的完整下载，执行的repo脚本只是引导程序;
+完成repo工具的完整下载，执行的repo脚本只是引导程序，使用repo库之前需要有一个repo脚本作为起点;
 
 克隆清单库manifest.git (地址来自于-u 参数);
 
@@ -50,6 +54,38 @@ project元素，用于定义一个项目，path属性表示在工作区克隆的
 
 project元素的子元素copyfile，定义了项目克隆后的一个附件动作，从src拷贝文件到dest。
 
+
+
+
+
+=============待整理
+
+*指定某个分支：
+
+repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
+
+
+
+*本地镜像:
+
+mkdir <somepath>/android_mirror
+
+cd <somepath>/android_mirror
+
+repo init -u https://android.googlesource.com/mirror/manifest --mirror
+
+repo sync
+
+*将本地镜像作为仓库服务器使用:
+
+mkdir <somepath2>/myandroid
+
+cd <somepath2>/myandroid
+
+repo init -u /usr/local/aosp/mirror/platform/manifest.git
+
+repo sync
+
 repo  init 
 
 *下载代码：
@@ -62,7 +98,7 @@ $repo sync platform/build
 
 这里，语法格式是：repo sync [<project>…]
 
-用于参照清单文件.repo/manifest.xml克隆并同步版本库。如果某个项目版本库尚不存在，则执行repo sync 命令相当于执行git clone，如果项目版本库已经存在，则相当于执行下面的两条指令：
+用repo sync来获取真正的Android代码。它会参照清单文件.repo/manifest.xml克隆并同步版本库。如果某个项目版本库尚不存在，则执行repo sync 命令相当于执行git clone，如果项目版本库已经存在，则相当于执行下面的两条指令：
 
 $git remote update
 
@@ -72,13 +108,26 @@ $git rebase origin/branch
 
 针对当前分支的跟踪分支执行rebase操作。
 
+用repo sync 在抓去 android source code 的时候，会经常出现一些错误导致 repo sync 中断，每次都要手动开始。 可以用如下的命令，来自动重复 $?=1;  while [ $? -ne 0 ]   do  repo sync   done
+
+
+用repo sync 在抓 android source code 的时候，会经常出现一些错误导致 repo sync 中断，每次都要手动开始。 可以用如下的命令，来自动重复
+
+ $?=1;   
+
+while [ $? -ne 0 ]   
+
+do  repo sync   
+
+done
+
 
 
 
 
 其它：
 
-
+?什么是repo的分支？
 
 fyou’re not in China, please follow with the steps as below
 
@@ -107,4 +156,132 @@ fyou’re not in China, please follow with the steps as below
 http://blog.csdn.net/skyflying2012/article/details/23742683
 
 http://blog.chinaunix.net/uid-103601-id-2961410.html
+
+http://wv1124.iteye.com/blog/1838217
+
+http://blog.163.com/chaoyongan@126/blog/static/31068420201339101239726/
+
+http://www.mikewootc.com/wiki/android/basic/repo_usage.html
+
+
+
+
+
+一次repo实践：
+
+1、拷贝repo脚本程序
+
+(不同的repo库使用的repo脚本不同？)
+
+2、生成ssh到公钥和私钥
+
+$ssh-keygen -t rsa -C <email>
+
+这里，全部询问直接回车，生成的ssh-key 在~/.ssh/id_rsa和~/.ssh/id_rsa.pub
+
+3、配置ssh
+
+#vim ~/.ssh/config
+
+添加类似如下内容
+
+Host gerrit
+
+Hostname 172.16.112.68
+
+port 29418
+
+User miracle.lv
+
+IdentityFile ~/.ssh/id_rsa
+
+
+
+Host gerrit-master
+
+Hostname 172.27.221.226
+
+port 29418
+
+User miracle.lv
+
+IdentityFile ~/.ssh/id_rsa
+
+4、登录gerrit并向gerrit中添加ssh的公钥。
+
+5、测试gerrit的ssh连接成功：
+
+#ssh gerrit
+
+会有相应欢迎信息。
+
+6、初始化repo库
+
+#mkdir mydir
+
+#cd mydir
+
+这两条命令创建工作目录。
+
+#repo init -u ssh://gerrit/xxx -b <branch name>
+
+#repo sync
+
+这两条下载代码，其中 init命令指定下载路径和分支，repo sync真正下载代码。
+
+其实repo init之后，目录中会多出一个.repo目录，其结构如下：
+
+../
+
+.repo/
+
+| manifests.git/
+
+| | branches/
+
+| | hooks/
+
+| | info/
+
+| | logs/
+
+| | objects/
+
+| | refs/
+
+| | rr-cache/
+
+| | .repopickle_config
+
+| | FETCH_HEAD
+
+| | HEAD
+
+| | config
+
+| | description
+
+| manifests/
+
+| | .git/
+
+| | default_mtk_1431_4.xml*
+
+| | default_mtk_1434_1.xml*
+
+| | default.xml                                                                                                                                
+
+| | default_clone.xml
+
+| | default_tpvision.xml
+
+| repo/
+
+| manifest.xml@
+
+其中的.repo/repo/repo文件就是最新的repo程序。
+
+用repo init来获取真正的repo(python写成的)的git仓库, 以及Android源码的列表信息(manifest)的git仓库. 这些会放在当前路径下一个.repo文件夹里.
+
+用repo sync来获取真正的Android代码.
 
