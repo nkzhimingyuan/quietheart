@@ -122,6 +122,10 @@ do  repo sync
 done
 
 
+*查看repo实际运行时获取的清单：
+
+repo manifest -o -
+
 
 
 
