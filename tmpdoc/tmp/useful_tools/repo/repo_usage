@@ -3,66 +3,135 @@ repo
 Android 使用 Git 作为代码管理工具，开发了 Gerrit 进行代码审核以便更好的对代码进行集中式管理，还开发了 Repo 命令行工具，对 Git 部分命令封装，将百多个 Git 库有效的进行组织。 Android 是由 kernel、Dalvik、Bionic、prebuilt、build 等多个 Git 项目组成，所以 Android 项目编写了一个名为 Repo 的 Python 的脚本来统一管理这些项目的仓库，使得 Git 的使用更加简单。
 
 使用repo前先下载repo脚本。
-
+有时可以在repo中的子目录中，运行repo命令，命令参数可以是相对路径。不一定非得到.repo的父目录下，使用manifest中清单指定的名字（比如"repo start test ../project1"）。
 
 
 repo常用命令：
 
-*下载repo并克隆manifest：
-
-$repo init  -u git://172.16.1.31/manifest.git
-
-这里，做完之后，当前目录便出现一个.repo文件。
-
-语法格式是：repo init –u URL [OPTIONS]
-
+repo init –u URL [OPTIONS]
+其中，
 -u:指定一个URL，其连接到一个manifest仓库
-
 -m:在manifest仓库中选择一个xml文件
+-b:选择一个maniest清单库的一个特殊的分支
+repo init可以被执行多次，如果没有参数，则从上游获取新的清单库文件；
+如果使用-u会重新设定上游清单库地址并重新同步；
+如果使用-b则使用清单库的不同分支以便在使用repo sync时将项目同步到不同的里程碑。
 
--b:选择一个maniest仓库中的一个特殊的分支
+另外，
+这里的repo, 开始可能只是一个简单的叫repo的shell脚本. 这其实只是个皮，真正的repo是python的脚本, 要用repo init来下载.用repo init来获取真正的repo(python写成的)的git仓库, 以及Android源码的列表信息 (manifest)的git仓库.
+获取的repo库地址在引导脚本中的REPO_URL和REPO_REV变量指出，如果覆盖默认设置从指定源克隆repo库，那么使用如下选项选择指定的repo库：
+--repo-url:设定repo版本库地址；
+--repo-branch:设定要检出的分支。
+其实repo命令的子命令，都对应其repo库中目录subcmds下的一个python脚本，使用repo help <cmd>获取帮助信息。repo init主要就是检出manifest清单库，其实也可用git操作完成。除非是没跟踪的状态，否则repo init不会使得对manifests的修改丢失。
 
-上面所说的repo, 开始可能只是一个简单的叫repo的shell脚本. 这其实只是个皮. 真正的repo是python的脚本, 要用repo init来下载.用repo init来获取真正的repo(python写成的)的git仓库, 以及Android源码的列表信息(manifest)的git仓库.
+命令repo init 主要完成如下操作：
+*完成repo工具的完整下载，执行的repo脚本只是使用repo库之前的引导程序。
+初始化之时它会将repo.git库克隆到当前.repo/repo目录下，之后将控制权转给其中的repo/main.py继续完成初始化工作。
+*克隆清单库manifest.git (地址来自于-u参数)到.repo/manifest.git中，本地清单内容在.repo/manifests中。
+repo/manifest.xml只是符号链接，它指向相应选择的清单，默认是.repo/manifests/default.xml;如果manifests中有多个xml文件，repo init 可以通过-m任意选择其中一个，默认选择是default.xml;
+*询问用户的姓名邮件地址，如果与默认的不同则存于.repo/manifest.git/config中。
+*如果repo init还带有--mirror参数，则会建立与上游一模一样的镜像。
+--mirror命令只能在第一次初始化的时候使用，使用这个选项之后，也会在克隆的.repo/manifests.git/config记录上如下信息：
+[repo]
+	mirror=true
 
-命令repo init 要完成如下操作：
+综上，进行repo init之后，我们会得到一个.repo目录，目录中的内容大致如下：
+.repo/repo: 完成repo工具库，repo引导程序下载完这个repo工具库后，将后续的初始化工作交由到这里。
+.repo/manifests.git: repo清单文件库，可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本，清单文件以xml格式组织，描述该项目所包含子项目git库。
+.repo/manifests: 当前使用的清单库中的工作分支，其中的xml文件就描述上述所说的项目所包含的所有子项目git库。
+大致如下：
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote  name="origin"
+           fetch="ssh://gerrit"
+           push="ssh://gerrit"
+           review="http://xxxx.com:8080"  />
+  <default revision="refs/for/branch1"
+           remote="origin"
+           sync-j="4" /> 
+  <project groups="pdk-cw-fs" name="device/common"  />
+  <project groups="pdk" name="device/generic/arm64"  />
+.......
+  <project groups="pdk" name="platform/build" path="build"  >
+    <copyfile dest="Makefile" src="core/root.mk" />
+  </project>
+......
+</manifest>
+其中：
+remote元素，定义了名为origin的远程版本库，其库的基址为ssh://gerrit.
+default元素，设置各个项目默认远程版本库为origin，默认的的分支为refs/for/branch1。当然各个项目(project元素)还可以定义自己的remote和revision覆盖默认的配置.
+project元素，用于定义一个项目，path属性表示在工作区克隆的位置，name属性表示该项目的远程版本库的相对路径
+project元素的子元素copyfile，定义了项目克隆后的一个附件动作，从src拷贝文件到dest
+.repo/manifest.xml: 一个符号连接，指向.repo/manifests/default.xml，描述当前所处项目的清单文件。
+建立镜像之后，可以通过自己添加manifest文件或者为清单库添加分支，来建立自己的项目集合。
 
-完成repo工具的完整下载，执行的repo脚本只是引导程序，使用repo库之前需要有一个repo脚本作为起点;
-
-克隆清单库manifest.git (地址来自于-u 参数);
-
-克隆的清单库位于manifest.git中，克隆到本地.repo/manifests.清单.repo/manifest.xml只是符号链接，它指向.repo/manifests/default.xml;
-
-如果manifests中有多个xml文件，repo init 可以任意选择其中一个，默认选择是default.xml;
-
+例如：
+*下载repo并克隆manifest：
+$repo init  -u git://172.16.1.31/manifest.git
+这里，做完之后，当前目录便出现一个.repo文件。
 
 
 *选择指定的文件清单：
-
 $repo  init  -u git://172.16.1.31/manifest.git –m android.xml
-
 这样选择的是android.xml里面的配置，执行之后，.repo/manifest.xml便指向.repo/manifests/android.xml
-
 这里，指定的清单文件是以xml格式组织的，它里面指明了repo将要管理哪些git库。一个清单库可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本。
-
 举个例子：
-
 remote元素，定义了名为korg的远程版本库，其库的基址为git：//172.16.1.31/；
-
 default元素，设置各个项目默认远程版本库为korg，默认的的分支为gingerbread-exdroid-stable。当然各个项目(project元素)还可以定义自己的remote和revision覆盖默认的配置；
-
 project元素，用于定义一个项目，path属性表示在工作区克隆的位置，name属性表示该项目的远程版本库的相对路径；
-
 project元素的子元素copyfile，定义了项目克隆后的一个附件动作，从src拷贝文件到dest。
 
+*指定清单库的某个分支：
+repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
+注意这里分支是指manifest库的分支，而不是其清单文件管理的各个git项目的分支。manifest库的不同分支里清单文件内容有所不同，里面可能会指定不同的git项目集合。当然有时也可在同一个分支内用不同的清单文件指定不同的git项目集合。而一个清单文件中，有一个字段设定了默认的分支，这个分支指定了其管理的所有git项目的默认分支。使用repo sync之时，所有项目不在任何分支中，可以用repo start 来为清单文件中的指定项目或者所有项目创建基于这个默认分支的特定分支（最好名字不要与默认分支名一样），具体可参见repo start。
 
 
+repo sync [<project>…]
+用于参照清单文件.repo/manifest.xml克隆并同步版本库。如果某个项目版本库尚不存在，则执行repo sync 命令相当于执行git clone，如果项目版本库已经存在，则相当于执行下面的两条指令：
+git remote update
+相当于对每一个remote源执行了fetch操作
 
+git rebase origin/branch
+针对当前分支的跟踪分支执行rebase操作。不采用merge而是rebase目的是减少提交数量、方便评审。
+
+例如：
+*按照清单库对其中所有项目进行同步/克隆：
+$repo sync
+
+*选择清单库中的一个项目进行同步/克隆:
+$repo sync platform/build
+
+
+repo start  <newbranchname> [--all | <project>…]
+刚克隆下来的代码是没有分支的,repo start实际是对git checkout –b 命令的封装。 为指定的项目或所有项目（若使用—all参数），以清单文件中为设定的分支，创建特性分支。这条指令与git checkout –b 还是有很大的区别的，git checkout –b 是在当前所在的分支的基础上创建特性分支，而repo start是在清单文件设定分支的基础上创建特性分支。假设清单文件设定的基础分支是branch1，我们在一个自建分支b2上修改提交，然后用repo start创建一个分支b3，发现将会切换到b3，并且b2上的修改日志没有。即使我们自建的b2分支（通过checkout -b 或repo start方式创建）其名称也是branch1，也有同样的现象。
+
+例如：
+*在清单文件设定分支的基础上，为所有被管理的git项目创建stable特定分支：
+  repo start  stable  --all
+假设清单文件中设定的分支是gingerbread-exdroid-stable，那么执行以上指令就是对所有项目，在gingerbread-exdroid-stable的基础上创建特性分支stable。
+
+*对清单文件中指定的git项目在清单文件设定分支的基础上创建stable特定分支：
+  repo start  stable  platform/build platform/bionic
+假设清单文件中设定的分支是gingerbread-exdroid-stable，那么执行以上指令就是对platform/build、platform/bionic项目，在gingerbread-exdroid-stable的基础上创建特性分支stable
+
+其实假设清单中设定的默认分支为refs/for/branch1，repo sync之后，当前项目没有处于任何分支，正常工作时可以：
+$repo start branch1 <projectname>
+这样projectname就创建并切换到branch1分支，和默认分支名一样了。
+当然也可以在projectname目录下用：
+$git checkout -b branch1 <origin/refs/for/branch1>
+然后类似如下修改，commit,push等等就可以进行了，gerritreview通过就可以了，当然不一定非得在branch1上提交：
+$vim ...
+$git add .
+$git commit -m 'xxx'
+$git push origin/project HEAD:refs/for/branch1
 
 =============待整理
-
-*指定某个分支：
-
-repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
+repo status
+repo checkout
+repo branches
+repo diff
+repo stage
+repo upload
 
 
 
@@ -132,6 +201,7 @@ repo manifest -o -
 其它：
 
 ?什么是repo的分支？
+清单文件中指定分支吗？
 
 fyou’re not in China, please follow with the steps as below
 
@@ -167,7 +237,7 @@ http://blog.163.com/chaoyongan@126/blog/static/31068420201339101239726/
 
 http://www.mikewootc.com/wiki/android/basic/repo_usage.html
 
-
+http://blog.sina.com.cn/s/blog_89f592f50100vpau.html
 
 
 
