@@ -1,0 +1,34 @@
+http://192.168.3.10/redmine/ 
+http://192.168.3.19:8443/svn/TFcloud/ 
+http://192.168.3.19:8443/svn/IPMediaDevice/
+huangwei@huangwei
+
+svn co http://192.168.3.19:8443/svn/IPMediaDevice/trunk/src
+
+svn co http://192.168.3.19:8443/svn/IPMediaDevice/branches/nvr
+
+declare -x DVSDK_BASE_DIR="/home/huangwei/dm36x_tools/dvsdk_ipnctools"
+declare -x FILESYS_BASE_DIR="/home/huangwei/project"
+declare -x KERNELDIR="/home/huangwei/dm36x_tools/dm36x/mvl-kernel"
+declare -x MVTOOL_DIR="/home/huangwei/mv_pro_5.0/montavista/pro/devkit/arm/v5t_le"
+export PATH=/home/huangwei/mv_pro_5.0/montavista/pro/devkit/arm/v5t_le/bin:/home/huangwei/mv_pro_5.0/montavista/pro/bin:/home/huangwei/mv_pro_5.0/montavista/common/bin:$PATH
+declare -x TFTP_HOME="/home/huangwei/project/output"
+declare -x UBOOTDIR="/home/huangwei/dm36x_tools/ipnc_psp/u-boot"
+
+
+192.168.3.16：
+declare -x KERNELDIR="/home/huangwei/firmware/mvl-kernel"
+declare -x FILESYS_BASE_DIR="/home/huangwei/firmware/outputfile"
+declare -x TFTP_HOME="/home/huangwei/firmware/outputfile"
+
+IP地址分配：
+192.168.3.151  电脑
+192.168.3.152  虚拟机
+192.168.3.155  单板
+root:888888
+
+景阳的机器 192.168.3.190 通过telnet root 123456
+
+未设置mac地址无法进行socket通信，即使Linux使用了一个默认的mac地址
+
+$(LD) $(LD_OPTS) -o$(EXE) -Wl,--start-group $(LIBS) -Wl,--end-group

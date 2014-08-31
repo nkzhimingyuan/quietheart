@@ -1,0 +1,11 @@
+format 74
+
+subject 128002 ""
+  xyzwh 178 73 2000 31 33
+subject 128130 ""
+  xyzwh 335 210 2000 31 33
+classcanvas 128258 class_ref 128130 // actor
+  class_drawing_mode default show_context_mode default show_stereotype_properties default
+  xyz 162 161 2000
+end
+end

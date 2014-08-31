@@ -1,0 +1,14 @@
+window_sizes 1301 744 320 975 550 120
+diagrams
+  active  activitydiagram_ref 128898 // InitNetWork
+    975 550 100 4 0 0
+  activitydiagram_ref 135554 // SetNetConfig
+    780 440 100 4 0 0
+end
+show_stereotypes
+selected activitydiagram_ref 128898 // InitNetWork
+open
+  activitynode_ref 135170 // activity_final
+  activity_ref 134658 // SetNetConfig
+end
+end

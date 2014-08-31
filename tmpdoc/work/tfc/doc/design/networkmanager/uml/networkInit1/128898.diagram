@@ -1,0 +1,180 @@
+format 74
+
+activitynodecanvas 128002 activitynode_ref 128002 // initial_node
+  xyz 203 37 2010
+end
+activityactioncanvas 128130 activityaction_ref 128002 // activity action GetNetWorkPara
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 158 82 2010 114 60
+end
+activitycanvas 128770 activity_ref 128130 // InitNetWork
+  show_infonote default drawing_language default show_stereotype_properties default
+  xyzwh 23 7 2005 805 441
+end
+activityactioncanvas 129026 activityaction_ref 128130 // activity action InitNetWorkCfg
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 166 165 2010 100 60
+end
+activitynodecanvas 129538 activitynode_ref 128258 // fork
+  horizontal  xyzwh 203 248 2010 27 15
+end
+activityactioncanvas 129666 activityaction_ref 128258 // activity action WifiInit
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color red
+  xyzwh 83 336 2010 100 60
+end
+activityactioncanvas 130178 activityaction_ref 128386 // activity action SetHWaddr
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 259 336 2015 100 60
+end
+activityactioncanvas 130946 activityaction_ref 128514 // activity action SetNetConfig
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 500 76 2010 100 60
+end
+activitynodecanvas 131074 activitynode_ref 128514 // fork
+  horizontal  xyzwh 534 157 2010 39 15
+end
+activityactioncanvas 132482 activityaction_ref 135042 // activity action static ip
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 392 211 2010 100 60
+end
+activityactioncanvas 132610 activityaction_ref 135170 // activity action pppoe server
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 504 211 2010 100 60
+end
+activityactioncanvas 132738 activityaction_ref 135298 // activity action dhcp server
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 630 211 2010 100 60
+end
+activitynodecanvas 133378 activitynode_ref 135042 // join
+  horizontal xyz 542 293 2010
+end
+activityactioncanvas 133890 activityaction_ref 135426 // activity action CheckIpcIpConflict
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 493 327 2010 127 63
+end
+activitynodecanvas 134658 activitynode_ref 135170 // activity_final
+  xyz 679 345 2010
+end
+note 135298 "从配置文件中读取网络参数     "
+  xyzwh 307 12 2010 79 75
+note 135554 "暂未实现wifi相关设置"
+  xyzwh 31 235 2010 93 53
+note 136066 "根据参数设置网络
+(ip,gateway,netmask)"
+  xyzwh 632 35 2010 137 55
+note 136322 "以不同方式提供网络功能"
+  xyzwh 707 115 2010 85 69
+note 136834 "检测新设置好的网络ip"
+  xyzwh 639 273 2015 85 53
+flowcanvas 129794 flow_ref 128002 // HasWifi == 1
+  
+  from ref 129538 z 2011 label "HasWifi == 1" xyz 95.5 298 2011 to ref 129666
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130306 flow_ref 128258 // HasWifi == 0
+  
+  from ref 129538 z 2016 label "HasWifi == 0" xyz 264 297 2016 to ref 130178
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130434 flow_ref 128386 // <flow>
+  
+  from ref 129666 z 2016 to ref 130178
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130690 flow_ref 128514 // <flow>
+  
+  from ref 128130 z 2011 to ref 129026
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130818 flow_ref 128642 // <flow>
+  
+  from ref 129026 z 2011 to ref 129538
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131202 flow_ref 128770 // <flow>
+  
+  from ref 130178 z 2016 to point 371 363
+  line 131842 z 2016 to point 371 103
+  line 131970 z 2016 to ref 130946
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132354 flow_ref 128898 // <flow>
+  decenter_end 460
+  
+  from ref 130946 z 2011 to ref 131074
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132994 flow_ref 135426 // static ip
+  decenter_begin 256
+  
+  from ref 131074 z 2011 label "static ip" xyz 494.5 176 3000 to ref 132482
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133122 flow_ref 135554 // pppoe
+  
+  from ref 131074 z 2011 label "pppoe" xyz 535 176 3000 to ref 132610
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133250 flow_ref 135682 // dhcp
+  
+  from ref 131074 z 2011 label "dhcp" xyz 581.5 176 3000 to ref 132738
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133506 flow_ref 135810 // <flow>
+  
+  from ref 132482 z 2011 to ref 133378
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133634 flow_ref 135938 // <flow>
+  
+  from ref 132610 z 2011 to ref 133378
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133762 flow_ref 136066 // <flow>
+  
+  from ref 132738 z 2011 to ref 133378
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134530 flow_ref 136194 // <flow>
+  
+  from ref 133378 z 2011 to ref 133890
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134786 flow_ref 136322 // new network config
+  
+  from ref 133890 z 2011 label "new network config" xyz 666 367 3000 to ref 134658
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134914 flow_ref 136450 // basic network config
+  decenter_end 481
+  
+  from ref 128002 z 2011 label "basic network config" xyz 158 19 3000 to ref 128130
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 135426 -_-_
+  from ref 135298 z 2011 to ref 128130
+line 135682 -_-_
+  from ref 129026 z 2011 to ref 135298
+line 135938 -_-_
+  from ref 135554 z 2011 to ref 129666
+line 136194 -_-_
+  from ref 130946 z 2011 to ref 136066
+line 136450 -_-_
+  from ref 132738 z 2011 to ref 136322
+line 136578 -_-_
+  from ref 132610 z 2011 to ref 136322
+line 136706 -_-_
+  from ref 132482 z 2011 to ref 136322
+line 136962 -_-_
+  from ref 133890 z 2016 to ref 136834
+end

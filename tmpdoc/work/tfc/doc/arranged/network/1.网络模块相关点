@@ -1,0 +1,85 @@
+网络模块信息整理
+这个是综述文件，后面有详细介绍。
+
+1.包含功能
+ethernet
+pppoe
+wifi
+3g
+ipv6（未支持，需上层应用支持）
+
+2.配置文件
+/mnt/nand/cfg/net_iface.ini
+注：启动后，使用uboot的参数初始化，然后初始化网络时使用该文件参数初始化，两者不一样。
+
+3.文件
+头文件：
+include/common.h：网络配置所需的数据结构。
+include/paramcfg.h：网络参数设置相关接口。
+include/netconfig.h：网络模块对外提供的接口。
+
+模块代码：
+目录：network/
+相关文件：
+network_common.h/.c: 一些模块内部使用的，公用的杂乱操作。同时在.h文件中也有相应的调试开关用于打印log信息。
+netparam.c:对include/paramcfg.h中的网络设置函数的总体实现，以及对配置文件的处理。
+netconfig.c：对各类网络设置的具体实现，以及include/netconfig.h中一些对外接口的实现。
+netlink.h/.c:对ipv4网口设置函数的真正实现。
+dhcp.h/.c:对dhcp获取网络参数功能的实现。
+convert_param.c:对原有网络模块参数和现有网络模块参数的转换。
+check.c:对输入参数以及其它一些内容的合法性检测。
+ct3g.c:对3g功能的实现。
+ipv6.c:对ipv6网口设置函数的真正实现（目前未支持）。
+monitor.c：对启动网络后的监视网口变化的线程实现。
+pppoe.c:对pppoe功能的实现。
+router.c:对linux路由表的操作。
+debug_cmd.c:网络调试命令。
+wifi.c:对wifi功能的实现。
+
+4.初始化
+初始化在apps/ipnc/ipncinit.c中，通过InitNetWork2实现。
+过程：初始化参数、启动监视线程、初始化网口。
+
+5.其它
+（1）配置文件在/mnt/nand/cfg/net_iface.ini中，主要包括eth0,wifi,3g三类网卡的参数信息。文件没有时，会自动生成。
+（2）实现pppoe:/usr/sbin/pppoe*以及/etc/ppp/*文件，需内核配置是支持全部ppp选项。
+打开ppp相关配置：
+Device Drivers  --->
+    [*] Network device support  --->
+     <*>   PPP (point-to-point protocol) support
+          [*]     PPP multilink support (EXPERIMENTAL) 
+          [*]     PPP filtering
+          <*>     PPP support for async serial ports
+          <*>     PPP support for sync tty ports 
+
+（3）实现3g功能:/usr/sbin/ct3g-setup,/usr/sbin/chat,/etc/ppp/*，kernel/drivers/usb/serial/option.c，参照/opt/ipnc/start_ipnc.sh，需内核配置支持ppp选项和usb串口相关配置。
+打开usb串口相关配置：
+[*] USB support  ---> 
+    <*>   USB Serial Converter support  --->
+        [*]   USB Serial Console device support
+        [*]   USB Generic Serial Driver
+        <*>   USB driver for GSM and CDMA modems
+
+（4）实现wifi功能：wpa_supplicant,参照/opt/ipnc/start_ipnc.sh。
+
+
+6.测试与问题
+给出一个基本的测试过程，进行大改动时建议对以下点全测，每次成功加一个小的改动时，可以只测试相关指出。
+测试时，需采用烧写方式，注意最新内核和文件系统，而不应在nfs下进行。
+（*）static->dhcp->static的tcpip有线网设置。
+（*）设置pppoe。
+（*）pppoe设置disable，自动重启后，自动变成dhcp方式。
+（*）pppoe->static->pppoe->dhcp切换静态和动态网络。
+（*）设置错误的pppoe,再正确的pppoe。
+（*）wifi禁止并pppoe启动后，测试wifi的disable->dhcp->static->disable->dhcp->disable->static->dhcp然后重启。
+（*）设置错误的wifi，再正确的wifi。
+（*）拔掉网线以及插上网线，网络联通性的测试（对wifi和ethernet同时测试）。
+（*）重启无线路由(顺便关掉dhcp为以后方便)后，查看网络情况正常。
+（*）若dhcp服务不可用，则转为配置文件中的静态ip设置.
+（*）插拔无线网卡只在软件上做了处理，具体执行情况可能还需根据内核驱动对无线网卡动态插拔的支持程度而定(?)
+（*）wifi不存在时的检测.
+（*）有线网线没有的检测.
+（*）对原有文件格式的兼容
+（*）有线和无线都没有后来又有其一的检测
+
+

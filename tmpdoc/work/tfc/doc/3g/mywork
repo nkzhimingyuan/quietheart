@@ -1,0 +1,57 @@
+3G设置所需参数包括：
+
+基本设置
+
+一、数据结构的设计：
+目前包含域：
+APN：(可动态可静态)
+
+拨号号码：（默认*99#）
+1.APN（ctnet/ctwap）:
+2.拨号号码：(#777)
+3.用户名：
+4.密码：
+
+高级设置
+5.鉴权方式（chap pap）
+
+6.IP(可静态可动态)
+7.DNS（可静可动）
+WINS（可静可动）
+
+
+
+（代理）
+8.proxy ip
+9.proxy port
+
+
+typedef struct CT3G{
+char *apn;
+char *number;
+char *user;
+char *password;
+int authentication;(EAP, PAP, CHAP, MSCHAP, MSCHAP v2)
+}
+
+######################
+电信手机有CTNET、CTWAP两种上网设置，请核对设置参数：
+1、WAP参数：
+APN号：ctwap，
+电话号码：#777，
+用户名：ctwap@mycdma.cn，
+密码：vnet.mobi，
+代理服务器地址10.0.0.200，
+端口80（推荐）或9201；
+
+2、NET参数：
+APN号：ctnet，
+电话号码：#777，
+用户名：ctnet@mycdma.cn，
+密码：vnet.mobi。
+
+
+
+
+12d1:1505
+12d1:140c

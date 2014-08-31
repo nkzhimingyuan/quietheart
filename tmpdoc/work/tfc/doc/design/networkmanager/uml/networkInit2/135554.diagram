@@ -1,0 +1,25 @@
+format 74
+
+activitycanvas 128002 activity_ref 134658 // SetNetConfig
+  show_infonote default drawing_language default show_stereotype_properties default
+  xyzwh 46 23 2000 615 447
+end
+activityactioncanvas 128642 activityaction_ref 142722 // activity action CheckWifi
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 159 80 2010 82 49
+end
+activityactioncanvas 128770 activityaction_ref 142850 // activity action CheckEthernet
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 144 155 2005 116 54
+end
+activitynodecanvas 128898 activitynode_ref 141954 // decision
+  xyz 191 251 2005
+end
+flowcanvas 129026 flow_ref 143490 // <flow>
+  
+  from ref 128770 z 2006 to ref 128898
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+end

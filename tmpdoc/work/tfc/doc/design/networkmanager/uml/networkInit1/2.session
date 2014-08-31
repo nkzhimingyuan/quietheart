@@ -1,0 +1,11 @@
+window_sizes 1280 672 320 954 478 120
+diagrams
+  active  activitydiagram_ref 128898 // active
+    954 478 100 4 0 0
+end
+show_stereotypes
+selected activitydiagram_ref 128898 // active
+open
+  activity_ref 128130 // InitNetWork
+end
+end

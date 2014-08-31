@@ -1,0 +1,6 @@
+#Used for QteX86 environment.
+QTEDIR=/usr/local/Trolltech/QtEmbedded-4.5.3-x86
+PATH=$QTEDIR/bin:${PATH//$QTEDIR\/bin:/}
+LD_LIBRARY_PATH=$QTEDIR/lib:${LD_LIBRARY_PATH//$QTEDIR\/lib:/}
+export QTEDIR PATH LD_LIBRARY_PATH
+

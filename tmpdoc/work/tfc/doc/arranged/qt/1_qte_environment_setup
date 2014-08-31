@@ -1,0 +1,258 @@
+Qt开发系列1——搭建嵌入式Qt开发环境
+
+本文介绍在嵌入式系统中Qt开发环境的搭建过程。
+系统： Ubuntu 12.04.2 LTS
+Memory：2G
+CPU：四核
+
+官网：
+qt-project.org/downloads#qt-lib
+
+内容
+*关于Qt和Qt/E
+*安装Qt软件包
+*配置环境
+*环境简介
+*文件部署
+
+*关于Qt和Qt/E
+=====================================================
+这里区分几个名词：Qt，Qt/E，Qtopia Core, Qtopia。
+Qt泛指Qt的所有桌面版本，比如Qt/X11，Qt Windows，Qt Mac等。由于Qt最早是在Linux中随着KDE流行开来的，因此通常很多人说的Qt都指用于Linux/Unix的Qt/X11。
+Qte（Qt/Embedded）是用于嵌入式Linux系统的Qt版本。它去掉了X Lib的依赖而直接工作于Frame Buffer上，因而效率更高，但并不是Qt的子集，而应是超集，部分机制（如QCOP等）不能用于Qt/X11。 
+Qtopia是一个构建于Qte之上的类似桌面系统的应用环境，一般应用于PDA和手机。相比之下，Qte只是基础类库。 
+Qtopia Core：就是原来的Qte，大概从Qt 4开始改名，把Qtopia Core并到Qtopia的产品线中去了。但实际上Qtopia Core就相当于原来的Qte，仍然作为基础类库。
+另外，后来奇趣最近又把Qtopia Core改名叫做Qt for Embedded Linux了，不知道是不是因为Qtopia Core搞得大家都很糊涂，没人来买的缘故。
+
+
+*安装Qt软件包
+=====================================================
+（1）编译及安装qt-x11-opensource-src-4.5.3
+此过程非常非常慢，整个过程约2小时。如下：
+$tar xjvf qt-x11-opensource-src-4.5.3.tar.gz
+$cd qt-x11-opensource-src-4.5.3
+$sudo ./configure -prefix /usr/local/Trolltech/QtX11-4.5.3 -qvfb
+$sudo make
+$sudo make install
+注意， 
+可能会因为缺少软件包，配置不成功，此时尝试先"sudo apt-get install xorg-dev --fix-missing"再"./configure"。
+在"./configure"时，会提醒交互信息，分别键入'o'（使用opensource版本）和'yes'（接受协议），如不需交互，参见后续编译。
+为正常使用后面生成的qvfb，需要指定"-qvfb"选项。
+
+
+（2）编译及安装qt-embedded-linux-opensource-src-4.5.3-x86
+此过程非常非常慢，整个过程约2小时。如下：
+$tar -xzvf qt-embedded-linux-opensource-src-4.5.3.tar.gz
+$mv qt-embedded-linux-opensource-src-4.5.3 qt-embedded-linux-opensource-src-4.5.3-x86
+$cd qt-embedded-linux-opensource-src-4.5.3-x86
+$sudo yes yes | ./configure -opensource -prefix /usr/local/Trolltech/QtEmbedded-4.5.3-x86 -embedded x86 -plugin-gfx-qvfb -qt-kbd-qvfb -qt-mouse-qvfb
+$sudo make
+$sudo make install
+
+
+（3）编译及安装qt-embedded-linux-opensource-src-4.5.3-arm
+此过程非常非常慢，整个过程约2小时。如下：
+$tar -xzvf qt-embedded-linux-opensource-src-4.5.3.tar.gz
+$mv qt-embedded-linux-opensource-src-4.5.3 qt-embedded-linux-opensource-src-4.5.3-arm
+$cd qt-embedded-linux-opensource-src-4.5.3-arm
+$vim mkspecs/qws/linux-arm-g++/qmake.conf
+######修改内容######
+# modifications to g++.conf
+QMAKE_CC                = arm_v5t_le-gcc
+QMAKE_CXX               = arm_v5t_le-g++
+QMAKE_LINK              = arm_v5t_le-g++
+QMAKE_LINK_SHLIB        = arm_v5t_le-g++
+
+# modifications to linux.conf
+QMAKE_AR                = arm_v5t_le-ar cqs
+QMAKE_OBJCOPY           = arm_v5t_le-objcopy
+QMAKE_STRIP             = arm_v5t_le-strip
+####################
+$sudo yes yes | ./configure -opensource -prefix /usr/local/Trolltech/QtEmbedded-4.5.3-arm -xplatform qws/linux-arm-g++ -embedded arm -little-endian -qt-zlib -qt-libtiff -qt-libpng -qt-libjpeg -qt-libmng
+$sudo make
+$sudo make install
+
+注意，
+如找不到相应的编译工具，需要预先将交叉编译工具路径添加到系统环境变量如："export PATH=/usr/local/montavista/pro/devkit/arm/v5t_le/bin:$PATH"，或直接在qmake.conf中将相应的工具路径设置为绝对路径，例如："QMAKE_CC = /usr/local/montavista/pro/devkit/arm/v5t_le/bin/arm_v5t_le-gcc"。
+如配置时不使用"xplatform"选项，可将环境变量指定相应配置文件位置，如："export QMAKESPEC=/...<你的路径>.../qt-embedded-linux-opensource-src-4.5.3/mkspecs/qws/linux-arm-g++"。
+为方便模拟调试，建议加上" -qt-gfx-vnc"选项，见后。
+此处使用默认配置，如需支持其它功能，如触摸屏等，则需参照"./configure --help |less"进行相应定制。
+
+
+（4）编译安装qvfb工具
+$cd qt-x11-opensource-src-4.5.3
+$cd /tools/qvfb
+$sudo make
+$sudo cp ../..bin/qvfb /usr/local/Trolltech/QtEmbedded-4.5.0-x86/bin
+注意，
+编译好的qvfb的正常运行，需要之前编译"qt-x11-opensource-src-4.5.3"时，配置好"-qvfb"选项。
+
+
+*配置环境
+=====================================================
+（1）qt-x11:
+$vi setenv_qtx11.rc
+添加如下内容:
+##########
+QTDIR=/usr/local/Trolltech/QtX11-4.5.3
+PATH=$QTDIR/bin:${PATH//$QTDIR\/bin:/}
+MANPATH=$QTDIR/doc/man:${MANPATH//$QTDIR\/doc\/man:/}
+LD_LIBRARY_PATH=$QTDIR/lib:${LD_LIBRARY_PATH//$QTDIR\/lib:/}
+export QTEDIR PATH LD_LIBRARY_PATH
+##########
+添加之后保存退出.移到/usr/local/Trolltech/Qt-4.5.3中（或自己喜欢的路径）。
+
+（2）qt-embedded-x86:
+$vi setenv_qtex86.rc
+添加如下内容:
+##########
+QTEDIR=/usr/local/Trolltech/QtEmbedded-4.5.3-x86
+PATH=$QTEDIR/bin:${PATH//$QTEDIR\/bin:/}
+LD_LIBRARY_PATH=$QTEDIR/lib:${LD_LIBRARY_PATH//$QTEDIR\/lib:/}
+export QTEDIR PATH LD_LIBRARY_PATH
+##########
+添加之后保存退出.移到/usr/local/Trolltech/QtEmbedded-4.5.3-x86中（或自己喜欢的路径）。
+
+（3）qt-embedded-arm:
+$vi setenv_qtearm.rc
+添加如下内容:
+##########
+#Used for QteArm environment.
+QTEDIR=/usr/local/Trolltech/QtEmbedded-4.5.3-arm
+QWS_DISPLAY="VNC:0"
+#QWS_SIZE=320x240 
+PATH=$QTEDIR/bin:${PATH//$QTEDIR\/bin:/}
+LD_LIBRARY_PATH=$QTEDIR/lib:${LD_LIBRARY_PATH//$QTEDIR\/lib:/}
+export QTEDIR QWS_DISPLAY PATH LD_LIBRARY_PATH
+##########
+添加之后保存退出.移到/usr/local/Trolltech/QtEmbedded-4.5.3-arm中（或自己喜欢的路径）。
+
+（4）测试环境：
+测试qtx11：
+$cd /usr/local/Trolltech/Qt-4.5.3
+$. setenv_qtx11.rc
+然后就可以用qmake designer等工具了.
+
+测试qtembeddedx86：
+$cd /usr/local/Trolltech/QtEmbedded-4.5.3-x86
+$. setenv_qtex86.rc
+$cd /usr/local/Trolltech/QtEmbedded-4.5.3-x86/demos/books
+$qvfb -width 640 -height 480 &
+$./books -qws
+这样，即可在qvfb上启动的模拟器上显示程序。
+
+测试qtembeddedarm:
+这个需要先部署好arm文件系统之后才能进行，见后面“文件部署”。
+
+注意，
+我们在使用上述三种环境(qtx11, qtembeddedx86, qtembeddedarm)之一时，分别先运行对应的配置即可。
+运行qvfb测试时，出现："Qt for Embedded Linux data directory is not owned by user xxxxxx"之类的错误，可能是之前在其它用户中运行过qvfb，解决办法：删除/tmp/qtembedded-0 即可。
+
+
+*工作环境简介
+=====================================================
+1)关于编译及安装qt-x11-opensource-src-4.5.3
+	这里，安装的是桌面上开发环境的qt库，用于pc机器上qt程序的开发，以及对qvfb的编译。
+
+2)关于编译及安装qt-embedded-linux-opensource-src-4.5.3为x86版本
+	这里，安装的是x86系列嵌入式板子上开发环境的qt库，用于x86系列嵌入式机器上qt程序的开发。开发出来的程序pc上面编译之后，只能在x86体系板子上面运行，如果想要在机器上模拟运行，需要用qvfb(虚拟framebuffer).
+
+3)关于编译及安装qt-embedded-linux-opensource-src-4.5.3为arm版本
+	这里，安装的是arm系列嵌入式板子上开发环境的qt库，用于arm系列嵌入式机器上qt程序的开发。开发出来的程序pc上面编译之后，只能在arm体系板子上面运行，如果想要在机器上模拟运行，用qvfb(虚拟framebuffer)也是不行的，qvfb只是模拟x86体系的.这时需要：
+	首先，将程序用qt-embedded-linux-opensource-src-4.5.3-x86编译。
+	其次，编译好的程序在qvfb上面模拟运行。
+	再次，运行成功后再用qt-embedded-linux-opensource-src-4.5.3-arm编译。
+	最后，将成品复制到arm板子上即可运行。（如果网络条件可以，也可不用qvfb模拟，直接运行于开发板上，采用vnc方式显示模拟）。
+4)关于编译安装qvfb工具
+	qvfb是虚拟framebuffer,qvfb只能执行x86架构的应用程序，所以需要让qt-embedded生成关于x86的库和其他文件。 
+	前面编译安装qt的三个库之后，还有qvfb没有编译,需要到qt-x11-opensource-src-4.5.3中重新编译,这会在qt-x11-opensource-src-4.5.3/bin下生成qvfb,我们将它copy至/usr/local/Trolltech/QtEmbedded-4.5.3-x86/bin下即可。
+
+
+*文件部署
+=====================================================
+这里只对qt-embedded-linux-opensource-src-4.5.3-arm编译的Qt程序在开发板上运行情况进行介绍。
+假设为开发板构建的根文件系统为filesys。
+
+（1）库文件
+$cd filesys && mkdir -p usr/local/Trolltech/QtEmbedded-4.5.3-arm/lib
+$cp -a /usr/local/Trolltech/QtEmbedded-4.5.3-arm/lib/{fonts,libQtGui*,libQtCore*,libQtNetwork*,libQtXml*,libQtSql*,libQtSvg*} usr/local/Trolltech/QtEmbedded-4.5.3-arm/lib/
+$cp -a /usr/local/Trolltech/QtEmbedded-4.5.3-arm/plugins usr/local/Trolltech/QtEmbedded-4.5.3-arm/
+这里，需要注意路径要和pc上编译路径一致。只拷贝一些基本库及其被链接文件，大小约21M。实际中，可根据编译生成的程序，来确定还需要哪些额外的库。如果将上述编译安装好的"/usr/local/Trolltech/QtEmbedded-4.5.3-arm/lib"内容完全拷贝到开发板中，整个目录大小约40M。
+
+（2）环境变量
+#cd /usr/local/Trolltech/QtEmbedded-4.5.3-arm
+#. setenv_qtearm.rc
+可放在/etc/profiles，以便启动系统自动载入。
+
+（3）程序运行
+*使用qvfb方式模拟运行
+用qvfb方式模拟，需要先将程序编译成x86的版本，模拟运行，再将其编译为arm版本运行。
+
+*使用vncserver方式运行：
+使用vnc方式模拟，可以直接运行目标版程序，pc通过vncviewer来显示运行的界面。如果网络情况可以，并且开发板没有显示设备的话，采用此法也是一个不错的方法。
+具体如下：
+a.对qte-4.5.3-arm进行配置时，加上"-qt-gfx-vnc"选项，以支持vnc方式显示：
+$sudo yes yes | ./configure -opensource -prefix /usr/local/Trolltech/QtEmbedded-4.5.3-arm -xplatform qws/linux-arm-g++ -embedded arm -little-endian -qt-zlib -qt-libtiff -qt-libpng -qt-libjpeg -qt-libmng -qt-gfx-vnc
+b.部署好后，命令行指定用VNC显示：
+$./books -qws -display VNC:0
+也可用环境变量指定：export QWS_DISPLAY="VNC:size=720x480:depth=32"
+c.pc上查看结果：
+$vncviewer 192.168.0.228:0
+
+*实际运行
+确保设备上支持framebuffer之后，
+配置环境变量export QWS_DISPLAY="QVFb:0"，
+最后直接运行。
+
+
+其它
+=====================================================
+*自定制的qt特性
+Qt的特性，可以通过"./configure --help |less"来查看。这里主要给出如下：
+（1）第三方库的问题
+Qt自身会提供一些第三方库，例如libpng等，是使用系统提供的库，还是qt自带的第三方库，可以根据需要来确定。如果使用自带的，那么使用configure的-qt-<库名>方式来指定（例如:configure -qt-libpng）。所有qt自带的第三方库在源代码中的"src/3rdparty"目录中。
+使用-qt-libpng还是直接拷贝？
+
+（2）外部设备类型
+这里只对显示相关的设备举例说明，其它的类似：
+-qt-gfx-<driver>:用于指定Qte4使用的图形输出设备，<driver>参数可为:qvfb（X86 FB虚拟图形设备）、vnc（远程桌面控制显示）、linuxfb（linux frameBuffer设备）、transformed（旋转屏幕）、multiscreen(多屏显示)
+-no-gfx-<driver>:指定Qte4不使用那些图形设备；
+例如：./configure -qt-gfx-vnc -no-gfx-linuxfb -no-gfx-transformed -no-gfx-qvfb -no-gfx-multiscreen 表示只使用vnc图形设备来显示,不使用其他图形设备。
+                     
+
+（3）qt特性
+qt的特性描述文件为："src/corelib/global/qfeatures.txt"，在"src/corelib/global"中有许多头文件用来描述具有不同的qt特性。使用configure的-qconfig来指定使用哪些qt的特性。例如："./configure -qconfig minimal"，则会使用"src/corelib/global/qconfig-minimal.h"中所描述的特性来编译qt。我们可以自己指定符合自己需求的特性文件，例如："qtconfig-myfile.h"，文件必须是头文件，以"qconfig-"为前缀，".h"为后缀，指定时，使用没有前缀和后缀的名字:"./configure -qconfig myfile"。我们可以手动创建特性头文件，最好使用qconfig工具。它在qtx11的 "tools/qconfig"中，大致过程如下：
+（a）在qtx11的tools目录下，类似qvfb的方式编译一个qconfig的配置工具：
+$cd qt-x11-opensource-src-4.5.3/tools/qconfig
+$sudo make
+这样，在当前目录中生成一个qconfig工具，可用于可视化定制qt的功能。
+
+（b）拷贝一份qte-arm的配置文件，基于此进行配置
+$cp qt-embedded-linux-opensource-src-4.5.3-arm/src/corelib/global/qfeatures.txt .
+$./qconfig qfeatures.txt
+在图形界面下，选择好要使用的特性后，保存成：qt-embedded-linux-opensource-src-4.5.3-arm/src/corelib/global/qconfig-myfile.h，这样会生成一个qconfig-myfile.h文件，将其拷贝至相应代码的"src/corelib/global/"。
+
+（c）使用自定义的特性进行配置：
+$cd qt-embedded-linux-opensource-src-4.5.3-arm/
+$./configure -qconfig myfile
+
+
+待整理
+=====================================================
+*framebuffer
+可以用"examples/qws/framebuffer"中的程序，来确定设备是否支持framebuffer。
+
+
+*环境变量：
+export QTDIR=/usr/local/Trolltech/QtEmbedded-4.5.3-arm
+export QTEDIR=/usr/local/Trolltech/QtEmbedded-4.5.3-arm
+export QWS_DISPLAY=export QWS_DISPLAY="VNC:0"
+export QWS_SIZE=320x240 
+export LD_LIBRARY_PATH=$QTEDIR/lib:$LD_LIBRARY_PATH 
+export PATH=$QTEDIR/bin:$PATH 
+在setup文件中还是在启动脚本中。
+
+
+作者：QuietHeart
+Email：quiet_heart000@126.com
+日期：2013年10月13日

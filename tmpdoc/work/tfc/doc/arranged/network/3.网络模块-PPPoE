@@ -1,0 +1,184 @@
+PPPoE虚拟出一个ppp0的网络接口，实际借助以太网接口(如eth0)传输数据。
+
+这里给出PPPoE的服务搭建，以及设置方式。
+服务器系统: Ubuntu 12.04
+客户端: Linux嵌入式开发板
+
+
+1、网络接口情况
+(1)服务端：
+quietheart@quietheart-ThinkPad-E420:~/work$ ifconfig
+eth0      Link encap:以太网  硬件地址 f0:de:f1:f0:08:60  
+          inet 地址:192.168.0.116  广播:192.168.0.255  掩码:255.255.255.0
+          inet6 地址: fe80::f2de:f1ff:fef0:860/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  跃点数:1
+          接收数据包:2270 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:4735 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:1000 
+          接收字节:377210 (377.2 KB)  发送字节:5218298 (5.2 MB)
+          中断:41 基本地址:0x6000 
+
+lo        Link encap:本地环回  
+          inet 地址:127.0.0.1  掩码:255.0.0.0
+          inet6 地址: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  跃点数:1
+          接收数据包:129 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:129 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:0 
+          接收字节:12349 (12.3 KB)  发送字节:12349 (12.3 KB)
+
+(2)客户端：
+# ifconfig
+eth0      Link encap:Ethernet  HWaddr 74:37:2F:20:20:14  
+          inet addr:192.168.0.120  Bcast:192.168.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::7637:2fff:fe20:2014/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:4718 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:2303 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:5259832 (5.0 MiB)  TX bytes:383574 (374.5 KiB)
+          Interrupt:52 Base address:0x7000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:1 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:148 (148.0 B)  TX bytes:148 (148.0 B)
+
+
+
+2、服务端搭建PPPOE的过程
+（1）安装pppoe服务软件
+#sudo apt-get install ppp
+
+（2）配置服务
+2.1、设置验证信息
+#vim /etc/ppp/pppoe-server-options
+#使用chap验证协议，如果使用pap验证协议，则此行为 require-pap
+require-chap
+
+#vim /etc/ppp/options
+#(设置验证方式)
+-pap
++chap
+#(允许本地验证)
+local
+
+2.2、添加用户信息
+#vim /etc/ppp/chap-secrets
+#添加用户名和密码
+# client  server  secret    IP addresses
+myuser    *        mypassword           *
+
+（3）启动和关闭PPPOE服务
+3.1、启动pppoe服务
+#pppoe-server -I eth0 -L 172.168.0.1 -R 172.168.0.210 -N 20
+-I eth0 指定pppoe服务器在哪个网卡接口监听连接请求
+-L 172.168.0.1 指定pppoe服务器的ip地址。（注意：此IP地址不是网卡的IP地址，而是PPPOE服务器的虚拟IP，和网卡eth0的地址无关，实际网卡eth0没有IP也可以）
+-R 172.168.0.210 pppoe服务器分配给客户端的IP地址，从192.168.27.210开始，递增。
+-N 20 指定最多可以连接pppoe服务器的客户端数量
+
+3.2、关闭PPPOE服务器
+killall pppoe-server
+
+
+3、客户端连接PPPOE服务端
+安装：
+（1）使用pppoe拨号链接：
+#pppoe-setup
+...
+USER NAME
+>>> ...:myuser
+...
+INTERFACE
+>>>...:eth0
+...
+PASSWORD
+>>>...:mypassword
+>>>...:mypassword
+...
+这里，"pppoe-setup"进入交互操作，具体选择如上，其它默认（如dns为server，防火墙为0等），"pppoe-setup"是一个脚本，用于生成连接服务所需的配置信息。
+
+#pppoe-start
+. Connected!
+这样，连接之后，客户端会有一个ppp0的设备如下：
+# ifconfig
+eth0      Link encap:Ethernet  HWaddr 74:37:2F:20:20:14  
+          inet addr:192.168.0.120  Bcast:192.168.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::7637:2fff:fe20:2014/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:6763 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:3576 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:6045812 (5.7 MiB)  TX bytes:674773 (658.9 KiB)
+          Interrupt:52 Base address:0x7000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:1 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:148 (148.0 B)  TX bytes:148 (148.0 B)
+
+ppp0      Link encap:Point-to-Point Protocol  
+          inet addr:172.168.0.210  P-t-P:172.168.0.1  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1492  Metric:1
+          RX packets:6 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:6 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:3 
+          RX bytes:45 (45.0 B)  TX bytes:45 (45.0 B)
+
+
+同时，服务端也多出一个ppp0，如下：
+root@quietheart-ThinkPad-E420:/home/quietheart/work# ifconfig
+eth0      Link encap:以太网  硬件地址 f0:de:f1:f0:08:60  
+          inet 地址:192.168.0.116  广播:192.168.0.255  掩码:255.255.255.0
+          inet6 地址: fe80::f2de:f1ff:fef0:860/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  跃点数:1
+          接收数据包:3580 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:6890 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:1000 
+          接收字节:676540 (676.5 KB)  发送字节:6055600 (6.0 MB)
+          中断:41 基本地址:0x6000 
+
+lo        Link encap:本地环回  
+          inet 地址:127.0.0.1  掩码:255.0.0.0
+          inet6 地址: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  跃点数:1
+          接收数据包:536 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:536 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:0 
+          接收字节:49149 (49.1 KB)  发送字节:49149 (49.1 KB)
+
+ppp0      Link encap:点对点协议  
+          inet 地址:172.168.0.1  点对点:172.168.0.210  掩码:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1492  跃点数:1
+          接收数据包:6 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:6 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:3 
+          接收字节:45 (45.0 B)  发送字节:45 (45.0 B)
+ 
+这样我们可见，两者的ppp0设备互相有对方的网址，这里可能都是ppp0，也可能不都是。
+
+（3）断开链接
+#pppoe-stop
+
+
+注：
+1.设置PPPoE需要内核的支持，对内核相应配置以支持pppoe，如下：
+开发板内核配置中应当支持所有的ppp选项，如下修改内核配置---使内核支持PPP
+   修改的地方：
+   (1)，Device Drivers-->
+      Network device driver-->
+      PPP下面所有的选项
+   (2)，Device Drivers-->
+      Networking-->
+      Universal TUN/TAP 
+
+2.数据包大小
+以太网帧最大长度为1518个字节，其中14个字节是帧头的长度，4个字节是校验码，所以1500个字节是数据载荷也就是说以太帧最大传输单元MTU为1500个字节，而pppoe头有6个字节，封装ppp协议时ppp协议域又占2个字节，所以pppoe接口MTU为1492个字节。一般连接时会自动设置，如果手动设置，请参见ifconfig的手册。

@@ -1,0 +1,10 @@
+
+include $(BASE_DIR)/COMMON_HEADER.MK
+INCLUDE+=$(COMMON_HDR)
+INCLUDE+=$(GLOBAL_HDR)
+INCLUDE+=-I./
+LIBS += $(LIB_DIR)/mkfirmware.a 
+LIBS += $(LIB_DIR)/system.a 
+include $(BASE_DIR)/COMMON_FOOTER.MK
+
+

@@ -1,0 +1,18 @@
+改进license机制，当前license规则：
+1，初始状态
+mac
+serialno
+license
+三个变量都没有设置，这时为初始状态，可以正常运行。
+
+2，license生成
+初始状态下，设置mac或者serialno之中的一个时，重启之后会自动生成license，并正常运行。
+
+3，认证
+生成license后，修改mac和serialno之一或全部，重启后将无法正常运行。
+
+
+另外：
+1，初始状态无license变量，mac，serialno也没有但是在ipnc内部被设置为："74:37:2F:00:00:00" 和 "tfcseria"。
+2，不应该修改license，为方便调试，若要为当前mac和serialno生成新的license，则将license设置为空并重启。
+

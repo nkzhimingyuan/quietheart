@@ -1,0 +1,78 @@
+一, 修改内核---使内核支持PPP
+   修改的地方：
+   1，Device Drivers-->
+      Network device driver-->
+      PPP下面所有的选项
+   2，Device Drivers-->
+      Networking-->
+      Universal TUN/TAP     
+二, 安装ppp-2.4.4和re-pppoe-3.10
+   1，安装ppp-2.4.4
+    tar xzvf ppp-2.4.4.tar.gz
+    cd ppp-2.4.4
+    sudo ./configure
+    make CC=arm_v5t_le-gcc 
+    cp ppp-2.4.4/pppd/pppd usr/sbin
+   2，安装rp-pppoe-3.10 
+   tar xzvf rp-pppoe-3.10.tar.gz 
+   cd rp-pppoe-3.10/src
+   sudo ./config
+   在rp-pppoe-3.10/src和rp-pppoe-3.10/src/libevent分别生成Makefile
+   把这两个Makefile中的gcc全部替换成arm_v5t_le-gcc 
+   然后在rp-pppoe-3.10/src执行make
+   3，需要把相关文件夹下面生成的脚本拷贝到filesys相应的目录
+   （a）把rp-pppoe-3.10/src下面的四个文件：pppoe、pppoe-relay、pppoe-server、pppoe-sniff
+    拷贝到filesys/usr/sbin
+   （b）把rp-pppoe-3.10/configs下面的文件拷贝到filesys/etc/ppp
+   （c）把rp-pppoe-3.10/scripts下面除了*.in的文件拷贝到filesys/usr/sbin，把修改这些文件的读写权限，使其具有可执行的权限
+三，修改文件系统：
+   (a)
+   cp /etc/ppp pppconfig(在pppoe-setup脚本中会cp /etc/pppconfig/*  /mnt/nand/ppp)
+   rm -r /etc/ppp
+   ln -s /mnt/nand/ppp  ppp
+   (b)
+   rm -r /var/run
+   ln -s /mnt/nand/run run
+四,修改脚本的内容如下：
+1，pppoe-setup中：
+  #At first, you must creat dir "/mnt/nand/ppp" and "/mnt/nand/run"
+$ECHO "Start to creating dir PPP and RUN" 
+cd /mnt/nand
+if [ -d /mnt/nand/ppp ] ; then
+   $ECHO "PPP is exist!"
+else
+   mkdir ppp
+fi
+if [ -d /mnt/nand/run ] ; then
+   $ECHO "RUN is exist!"
+else
+   mkdir run
+fi
+cp -rf /etc/ppp_bak/* /mnt/nand/ppp
+cd ./ppp
+chmod 777 * -R
+cd /mnt/nand
+chmod 777 run
+$ECHO "End of creating dir PPP and RUN" 
+
+#copy /etc/resolv.conf /etc/resolv.conf-bak
+由于我们的文件系统是只读的，所以无法执行cp操作
+除此之外把pppoe-setup的问答模式，改为pppoe-setup  ETH USER PASSWD server
+我们的PPPoE采用ISP提供的DNS
+2，pppoe-connect中：
+# Jigger DNS if required...
+if test "$DNSTYPE" = "SERVER" ; then
+    # Sorry, dude...
+    #rm -f /etc/resolv.conf
+    ln -s /etc/ppp/resolv.conf /etc/resolv.conf
+elif test "$DNSTYPE" = "SPECIFY" ; then
+    # Sorry, dude...
+    #rm -f /etc/resolv.conf
+    echo "nameserver $DNS1" > /etc/resolv.conf
+    if test -n "$DNS2" ; then
+	echo "nameserver $DNS2" >> /etc/resolv.conf
+    fi
+fi
+由于我们的文件系统是只读的，所以无法执行rm操作 
+    
+   

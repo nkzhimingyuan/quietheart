@@ -1,0 +1,136 @@
+format 74
+
+classinstancecanvas 128130 classinstance_ref 128386 // network
+  xyz 320 26 2005 life_line_z 2000
+end
+classinstancecanvas 128258 classinstance_ref 128514 // otherModules
+  xyz 643 67 2005 life_line_z 2000
+end
+note 128898 "Get all the network parameter from system(GET_PARA_MEM), or ini file(GET_PARA_INI), 
+3G interface is ifaceParam.ifaceList[2]"
+  xyzwh 422 208 3005 193 125
+note 129922 "Set all the network parameter to system(SET_PARA_MEM), or ini file(SET_PARA_INI), 
+3G interface is ifaceParam.ifaceList[2]"
+  xyzwh 424 440 2000 205 99
+note 130690 "Set  the ifaceIdx network parameter to system(SET_PARA_MEM), or ini file(SET_PARA_INI), 
+for 3G interface ifaceIdx is 2"
+  xyzwh 425 622 2000 197 97
+note 131458 "Set  the ifaceIdx network parameter to system(SET_PARA_MEM), or ini file(SET_PARA_INI) in another thread
+for 3G interface ifaceIdx is 2"
+  xyzwh 425 833 2000 199 127
+classinstancecanvas 132482 classinstance_ref 128258 // Thread
+  xyz 104 122 2005 life_line_z 2000
+end
+durationcanvas 128386 classinstance_ref 128258 // otherModules:others
+  xyzwh 705 141 2010 11 83
+end
+durationcanvas 128642 classinstance_ref 128130 // network:network
+  xyzwh 371 164 2010 11 61
+  overlappingdurationcanvas 132226
+    xyzwh 377 191 2020 11 25
+  end
+end
+durationcanvas 129410 classinstance_ref 128258 // otherModules:others
+  xyzwh 705 361 2010 11 48
+end
+durationcanvas 129666 classinstance_ref 128130 // network:network
+  xyzwh 371 377 2010 11 72
+  overlappingdurationcanvas 131970
+    xyzwh 377 406 2020 11 25
+  end
+end
+durationcanvas 130178 classinstance_ref 128258 // otherModules:others
+  xyzwh 705 565 2010 11 40
+end
+durationcanvas 130434 classinstance_ref 128130 // network:network
+  xyzwh 371 591 2010 11 73
+  overlappingdurationcanvas 131714
+    xyzwh 377 624 2020 11 25
+  end
+end
+durationcanvas 130946 classinstance_ref 128258 // otherModules:others
+  xyzwh 705 772 2010 11 40
+end
+durationcanvas 131202 classinstance_ref 128130 // network:network
+  xyzwh 371 796 2010 11 234
+end
+durationcanvas 132610 classinstance_ref 132482 // Thread:CT3G
+  xyzwh 144 865 2010 11 55
+  overlappingdurationcanvas 132866
+    xyzwh 150 889 2020 11 25
+  end
+end
+reflexivemsg 128514 synchronous
+  to durationcanvas_ref 128386
+  yz 141 2015 explicitmsg "function1"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 698 126
+msg 128770 synchronous
+  from durationcanvas_ref 128386
+  to durationcanvas_ref 128642
+  yz 164 2015 explicitmsg "GetNetworkParameter(&ifaceParam, ...);"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 391 149
+reflexivemsg 129538 synchronous
+  to durationcanvas_ref 129410
+  yz 361 2015 explicitmsg "function2"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 694 346
+msg 129794 synchronous
+  from durationcanvas_ref 129410
+  to durationcanvas_ref 129666
+  yz 377 2015 explicitmsg "SetNetworkParameter(&ifaceParam, ...);"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 433 362
+reflexivemsg 130306 synchronous
+  to durationcanvas_ref 130178
+  yz 565 2015 explicitmsg "function3"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 694 550
+msg 130562 synchronous
+  from durationcanvas_ref 130178
+  to durationcanvas_ref 130434
+  yz 592 2015 explicitmsg "SetNetworkInterface(ifaceIdx, iface, ...);"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 433 577
+reflexivemsg 131074 synchronous
+  to durationcanvas_ref 130946
+  yz 772 2015 explicitmsg "function4"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 694 757
+msg 131330 synchronous
+  from durationcanvas_ref 130946
+  to durationcanvas_ref 131202
+  yz 796 2015 explicitmsg "SetNetworkInterfaceASync(ifaceIdx, iface, ...);"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 414 781
+reflexivemsg 131842 synchronous
+  to durationcanvas_ref 131714
+  yz 624 2025 unspecifiedmsg
+  show_full_operations_definition default drawing_language default show_context_mode default
+reflexivemsg 132098 synchronous
+  to durationcanvas_ref 131970
+  yz 406 2025 unspecifiedmsg
+  show_full_operations_definition default drawing_language default show_context_mode default
+reflexivemsg 132354 synchronous
+  to durationcanvas_ref 132226
+  yz 191 2025 unspecifiedmsg
+  show_full_operations_definition default drawing_language default show_context_mode default
+msg 132738 asynchronous
+  from durationcanvas_ref 131202
+  to durationcanvas_ref 132610
+  yz 865 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default show_context_mode default
+reflexivemsg 132994 synchronous
+  to durationcanvas_ref 132866
+  yz 889 2025 unspecifiedmsg
+  show_full_operations_definition default drawing_language default show_context_mode default
+line 129282 -_-_
+  from ref 128898 z 3006 to ref 128770
+line 130050 -_-_
+  from ref 129794 z 2016 to ref 129922
+line 130818 -_-_
+  from ref 130562 z 2016 to ref 130690
+line 131586 -_-_
+  from ref 131458 z 2016 to ref 131330
+end

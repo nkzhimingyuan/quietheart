@@ -1,0 +1,333 @@
+Qt开发系列2——使用Qt开发一个简单程序
+
+
+这里介绍开发Qt程序的一些方法和步骤。
+主要内容：
+一、手工编写QT程序
+二、使用Qt Designer进行程序界面设计
+三、使用QCreator开发Qt程序
+
+
+一、手工代码编写QT程序
+=========================
+1.程序功能：
+只有一个窗口的helloworld程序。
+
+2.代码如下：
+//main.cpp
+#include <QApplication>
+#include <QWidget>
+int main( int argc, char **argv )
+{
+	QApplication a( argc, argv );
+
+	QWidget window;
+	window.resize(320, 240);
+	window.show();
+
+	return a.exec();
+}
+
+3.编译与运行
+编译过程：
+$qmake -project
+$qmake
+$make
+
+运行：
+$./main
+假设生成的文件名称是main，这样运行会弹出一个简单的窗口，大小320x240。另外在X窗口运行的时候也可尝试用-geometry 100x200+10+20来指定大小。
+
+
+二、使用Qt Designer进行程序界面设计
+=========================
+使用Qt Designer可以快速对程序界面进行设计。使用Qt Designer设计程序界面，有四种方式：
+第1种方法：就是在源代码中直接利用designer生成的头文件
+步骤如下：
+a，首先利用designer设计界面，之后保存。
+这里保存的文件为untitled.ui，xml格式。
+
+b,在untitled.ui所在目录中随便写一个main.cpp文件里面有运行程序的main函数
+（main可以先空白着）
+
+c，运行如下命令生成ui头文件。
+$qmake -project
+$qmake
+$make
+这里,make之后可能会报错(由于main.cpp中的错误),不用管，这里目的只是先生成一个根据untitled.ui的头文件ui_untitled.h.
+
+d,将ui界面添加到源代码中，改写main.cpp，如下：
+#include <QApplication>
+#include "ui_untitled.h"
+int main(int argc, char *argv[])
+{
+	QApplication app(argc, argv);
+
+	//这个window定义类型和ui_untitled.h中的setupUi参数类型一样
+	QMainWindow *window = new QMainWindow;
+
+	//这里是在程序中使用自己ui的方法,ui就是头文件定义的类对象
+	//声明是Ui_MainWindow但是可以这样引用
+	Ui::MainWindow ui;
+	ui.setupUi(window);
+
+	window->show();
+	return app.exec();
+}
+
+e,编译运行：
+$make
+$<运行>
+
+第2种方法：利用designer生成的类包含到自己的类中
+和第一种方法不同的是，此方法不是直接使用designer生成的类，而是定义一个自己的类，类中包含designer生成类的对象（因为生成的类不继承任何所以可能不是Qobject的子类）来集中管理用户控件，自己定义的类可以继承其他QObject类，进而可以定义自己的槽和信号了。这也是后面QCreator使用Qt Designer的方式。编译和运行过程和前面类似。
+
+第3种方法：使用多继承，继承Qt Designer生成的类
+方法和第2种类似，不同的是方法2使用的是单继承一个自己喜欢的类然后在自己的类中将designer生成的类做为一个对象成员；这里却是多继承实现的：一个父类是自己喜欢继承的类，一个父类是designer生成的类。
+
+第4种方法：运行时动态加载界面文件，不用生成界面文件的代码
+这里和前面的方法都不一样，这里使用的untitled.ui文件不用生成ui_untitled.h而是动态读取。即，程序运行的时候，动态地读取untitled.ui的内容生成程序界面。这样，修改ui的时候非常方便，不用再重新编译了，只需要修改untitled.ui就行。
+过程如下：
+a）使用designer设计保存文件为untitled.ui.
+b）建立main.cpp文件内容如下：
+#include <QApplication>
+#include <QWidget>
+
+//这个文件必须包含用于动态加载ui.
+#include <QtUiTools>
+int main(int argc, char *argv[])
+{
+	QApplication app(argc, argv);
+
+	//加载ui文件
+	QUiLoader loader;
+	QFile file("./untitled.ui");
+	file.open(QFile::ReadOnly);
+
+	//根据ui文件生成界面
+	QWidget *uiWidget = loader.load(&file, 0);
+	file.close();
+	uiWidget->show();
+
+	//根据名称获得子部件的示例代码
+	//ui_Button = qFindChild<QPushButton*>(this,"name1");
+	//ui_textEdit = qFindChild<QTextEdit*>(this, "name2");
+	//ui_lineEdit = qFindChild<QLineEdit*>(this, "name3");
+
+	return app.exec();
+}
+c)生成.pro文件：
+$qmake -pro
+文件内容如下：
+###############################
+TEMPLATE = app
+TARGET = 
+DEPENDPATH += .
+INCLUDEPATH += .
+
+#Input
+FORMS += untitled.ui
+SOURCES += main.cpp
+
+#这里是手动加的
+#make时不自动生成头文件
+FORMS -= untitled.ui
+#使用动态加载必须这样配置
+CONFIG += uitools
+###############################
+d)编译运行：
+$qmake
+$make
+$./<运行程序>
+
+
+三、使用QCreator开发Qt程序
+=========================
+QCreator是Qt的集成开发环境，利用它可以大大提高开发的效率。这里用一个完整的例子来说明使用过程。
+软件版本：Qt Creator 2.4.1
+
+*安装qcreator：
+$sudo apt-get install qtcreator
+这里，安装的版本是Qt Creator 2.4.1。
+
+*设置编译工具：
+参见：工具->选项->构建和运行，重点关注"Qt版本"和"工具链"两项。
+
+*编译和运行不同的版本：
+新建项目后，在左侧栏中选择"项目"，其中，“构建设置”可设置编译成哪个版本(arm/x86/x11)，“运行设置”可设置运行的参数等。
+对于qte的arm程序，只能编译，不能运行。 
+对于qte的x86程序，编译后能在qvfb中运行。 
+对于qtx11的程序，编译后，可以直接运行。
+
+*建立外部工具：
+这里假设建立"qvfb"模拟器，启动模拟器后可以运行qte-x86的程序。
+建立方法：工具->外部->配置->外部工具->添加，然后填入启动qvfb所需的参数（这里假设添加的名字为qvfb）。
+启动方法：工具->外部->qvfb。
+其实，也可自己在终端手动启动qvfb，而不用添加外部工具。
+
+*编写程序：
+使用QtCreator创建的项目，会自动生成许多相关的文件，相比手工建立这些文件要方便，创建新项目之后，即可进行程序的创建。 下面给出一个例子：
+(1)初始创建
+文件->新建文件或工程
+选择：Qt 控件项目->Qt Gui应用->下一步
+设置好“名称”（mysinglegui）和“创建路径”->下一步
+设置好编译版本（x86/arm/x11编译 debug/release版本）->下一步
+采用默认的主窗口类名，ui界面文件名等设置->下一步->完成
+至此，生成一个空白的gui程序，只有一个窗口。
+
+(2)文件分析
+项目目录的文件系统下主要包含的文件：
+mainwindow.ui
+main.cpp
+mainwindow.h
+mainwindow.cpp
+ui_mainwindow.h(编译时根据mainwindow.ui生成)
+大致介绍如下：
+
+(a)mainwindow.ui
+---------
+此文件为描述主窗口的界面文件，内容不用解释，该文件打开之后，可以通过集成进QCreator的Qt Designer用可视化方式对主窗口中的子元素进行布局和设置。编译程序时，会根据该文件自动生成一个普通类(注意它不是QObject的子类，只是普通类)，它仅包含主窗口外的子元素集合，该类的类名和主窗口类名一样但是在"Ui::"命名空间声明，该类的作用是集中管理主窗口的子部件，见后对其文件的描述。
+
+(b)main.cpp:
+---------
+#include <QtGui/QApplication>
+#include "mainwindow.h"
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MainWindow w;
+    w.show();
+
+    return a.exec();
+}
+---------
+由此可知，此文件为程序的主入口文件，会创建MainWindow类窗口，并将其显示。
+
+(c)mainwindow.h
+---------
+#include <QMainWindow>
+namespace Ui {
+    class MainWindow;
+}
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+    public:
+        explicit MainWindow(QWidget *parent = 0);
+        ~MainWindow();
+
+    private:
+        Ui::MainWindow *ui;
+};
+---------
+由此可见，此文件是程序主窗口的类声明，注意主窗口的界面元素和布局等其实都在其ui成员中设置，ui成员就是前面说的集中管理子界面的普通类对象。我们可在MainWindow类中定义自己的槽和信号。
+
+(d)mainwindow.cpp
+---------
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+---------
+此为主窗口类的实现，注意ui->setupUi(this);会将我们设置好的主窗口界面子元素设置并布局好。
+
+(e)mysinglegui.pro
+---------
+此为整个项目的配置文件，根据用户在QCreator中的操作和设置自动生成，一般不会手动修改。
+
+
+(f)ui_mainwindow.h
+---------
+#include <QtCore/QVariant>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QHeaderView>
+#include <QtGui/QMainWindow>
+#include <QtGui/QMenuBar>
+#include <QtGui/QStatusBar>
+#include <QtGui/QToolBar>
+#include <QtGui/QWidget>
+
+QT_BEGIN_NAMESPACE
+
+class Ui_MainWindow
+{
+    public:
+        QMenuBar *menuBar;
+        QToolBar *mainToolBar;
+        QWidget *centralWidget;
+        QStatusBar *statusBar;
+
+        void setupUi(QMainWindow *MainWindow)
+        {
+            if (MainWindow->objectName().isEmpty())
+                MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
+            MainWindow->resize(400, 300);
+            menuBar = new QMenuBar(MainWindow);
+            menuBar->setObjectName(QString::fromUtf8("menuBar"));
+            MainWindow->setMenuBar(menuBar);
+            mainToolBar = new QToolBar(MainWindow);
+            mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
+            MainWindow->addToolBar(mainToolBar);
+            centralWidget = new QWidget(MainWindow);
+            centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
+            MainWindow->setCentralWidget(centralWidget);
+            statusBar = new QStatusBar(MainWindow);
+            statusBar->setObjectName(QString::fromUtf8("statusBar"));
+            MainWindow->setStatusBar(statusBar);
+
+            retranslateUi(MainWindow);
+
+            QMetaObject::connectSlotsByName(MainWindow);
+        } // setupUi
+
+        void retranslateUi(QMainWindow *MainWindow)
+        {
+            MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MainWindow", 0, QApplication::UnicodeUTF8));
+            Q_UNUSED(MainWindow);
+        } // retranslateUi
+
+};
+
+namespace Ui {
+    class MainWindow: public Ui_MainWindow {};
+} // namespace Ui
+
+QT_END_NAMESPACE
+---------
+这个文件是编译时根据mainwindow.ui自动生成的。前面对其进行了相关的描述。需要注意的是，在setupUi中最后的connectSlotsByName函数，它所做的是自动连接信号到MainWindow的指定槽上，具体参见后面。
+
+（3）添加代码
+(a)ui的作用
+实际添加代码和不用QCreator开发类似，QCreator所做的只是将窗口的子部件全部放置一个普通类对象"ui"中集中管理。对于其它代码的添加（例如信号和槽等实现），不用修改那个自动生成的ui类，只需修改MainWindow类的相应部分即可。
+(b)信号和槽
+我们可以像一般QT程序那样连接信号和槽，但是如果想使ui对象的connectSlotsByName函数自动连接起作用，这要求MainWindow主窗口类中定义的槽的命名为on_<objname>_<signalname>，即例如想将对象名为btn的子构件的clicked信号连接，那么MainWindow中的槽名字应为：on_btn_clicked。这里的对象名不是代码中的变量名，而是QObject的objectname，是Qt控件的一个标识属性。
+(c)多窗口
+另外，对于多窗口程序，我们可以继续在已有项目基础上继续创建剩余窗口。通过在当前项目名下，右键->添加新文件，可以只添加.cpp .h 以及.ui文件，或者将三种文件自动一并添加，并在代码级别上使它们和主程序有所关联。但是不要在创建时ui设计器中把主窗口的对象名改变，否则其自动生成的Ui::classname变成对象名，导致无法编译通过。
+
+（4）运行和部署
+左侧"项目"->"运行设置"
+这里可以设置运行的参数，以及部署的位置和命令。
+
+
+待整理
+=========================
+具体编写代码规则等，需参见“帮助”中的文档信息。
+添加槽的简单方法：在Qt Designer界面右击相应控件->转到槽->选择触发槽的相应信号。
+
+
+作者：QuietHeart
+Email：quiet_heart000@126.com
+日期：2013年10月14日

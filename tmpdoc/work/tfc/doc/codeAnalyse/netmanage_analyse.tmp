@@ -1,0 +1,83 @@
+
+1、netcfg.c
+进行网络配置信息的管理。大致分为三个方面内容：
+(1)save/get 配置
+负责从mem 或 ini文件中读取写入配置。
+
+(2)check
+负责在设置参数之前检查参数的合法性。
+
+(3)set/get 参数
+负责从内存(变量或系统实际网络状态)或者文件中获取参数配置信息。
+
+三个部分，
+(3)会在set的时候调用(2)，之后根据是从内存还是配置文件set/get来调用(1)或netconfig.c,ddns.c等的相关函数进行具体的操作。
+
+
+当前network配置相关信息，只包含 Eth, Dns, pppoe三个方面的管理。Wifi和Ddns有相关的部分实现但是没有包含进这个配置主流程机制中。
+未来将对其进行扩展，可能包含
+eth, ddns, dns, pppoe, 3g。
+
+这个文件被??使用？
+
+
+2、netconfig.c
+对实际的网络状况进行管理。大体包括：
+(1)set /get 网络信息
+通过get将当前网络状态获取，通过set设置当前实际网络状态到内存变量。具体操作时可能会调用到netlink.c代码，通过socket操作来修改。也有部分代码直接操作socket实现(NetsGetIP)。另外还有部分是通过内存变量实现(Get/Set PPPoe)。
+
+(2)获取以及初始化配置信息
+读取网络当前状态，并存放于配置变量中。
+
+(3)检查测试操作网络状态
+包括查看网络连接，ip地址冲突检测，TCP端口连接测试,DHCP服务启动管理等，
+可能调用netlink.c操作socket(check netlink)，也可能直接代码直接实现(tcpport)例如操作socket或调用命令(dhcp)，还可能调用arping.c(ipconflict)等。
+
+(4)一些没有用到的代码。
+例如
+BringUP/ShutDown link .
+
+当前主要涉及到ETH, DHCP, PPPOE相关的管理，共存部分wifi代码。未来可能对其扩展，包含：
+eth, wifi, 3g，等相关的实际网络状况操作实现。
+
+4、netlink.c
+这个文件包含的是对各种网络管理的真正实现。
+
+包含甚至ip，设置mac，设置网关等等，大多通过socket来实现。
+
+
+5、arping.c
+通过socket请求方式，发送arp包，实现类似arping方式检测ip是否冲突。
+
+6、portconf.c
+获取或设置一些服务的端口信息（http,https,ftp,....）。
+工作方式类似netconf.c和netconfig.c，
+(1)set/get portparam从内存或者ini文件获取端口或设置端口信息。
+(2)set/get portconf设置或者获取内存中的端口信息（也就是一个全局变量）。
+(3)save/get portIni从ini文件获取或者写入端口信息。
+(4)check portparam用于在set/get portparam之前的参数检查。
+调用方式一般是set/get portparam跟据传输的where参数，调用set/get portconf或者save/get portIni，以管理port信息，同时setparam之前调用check。
+
+7、pppoe.c
+启动和停止pppoe功能。
+
+8、ipv6.c
+实现对ipv6地址的各种设置管理（获取设置地址，网关，等）。
+此文件和netlink.c类似，用于netconfig.c对Eth网络的设置与状态获取时，对应ipv6地址相关的操作调用的实现。
+
+9、wifi.c
+设置和获取wifi网络相关的信息。
+包括：
+设置wifi参数到配置文件中（如ssid,security等）。
+启动／停止wifi。
+设置获取当前wifi网络参数（如ip,netmask）。
+检测当前wifi网络信息。
+
+注意这里，wifi网络和wifi参数的区别，前者就是ip等基本信息可通过netlink.c或者ipv6.c管理，后者是wifi特有通过wpa_supplicant管理。
+
+
+10、debug_cmd.c
+调用前面实现的网络管理接口的调试命令的实现。
+包括：
+显示网络信息，显示wifi信息等，都是调用前面实现的接口，从内存中获取相应的信息(所有接口在include/paramcfg.h中声明了一遍)。
+将次调试命令注册到调试系统中(debug_telnet.c)。

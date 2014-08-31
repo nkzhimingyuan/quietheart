@@ -1,0 +1,36 @@
+链接wifi可以通过wpa_supplicant指定配置直接连接，或者用iwconfig或者wpa_cli之类的工具动态连接了。需要有wifi的芯片和相应驱动。可参见/opt/ipnc/start_ipnc.sh脚本使能wifi的方式。
+这里给出一个直接的例子连接wifi，具体参见代码wifi.c。
+举例：
+1.路由器设置为
+WIFI_CAM， wpa加密，
+密码为:"12345678"
+
+2.开发板
+（1）编写wpa_supplicant配置文件如下：
+ctrl_interface=DIR=/tmp/wpa_supplicant.conf GROUP=root
+network={
+    ssid="WIFI_CAM"
+    scan_ssid="WIFI_CAM"
+    proto=WPA
+    key_mgmt=WPA-PSK
+    psk="12345678"
+    pairwise=CCMP TKIP
+    priority=5
+}
+
+（2）加载驱动成功后，启动无线网卡：
+#ifconfig wlan0 up
+
+（3）启动wpa_supplicant:
+#wpa_supplicant -B -C /tmp/wpa_supplicant -c /tmp/wpa_supplicant.conf -i wlan0
+这里，-B表示后台daemon方式运行，-C指定控制用的套接字为/tmp/wpa_supplicant，-c指定配置文件为/tmp/wpa_supplicant.conf -i指定无线网卡接口为wlan0。
+
+（4）最后获取ip地址：
+dhcpcd wlan0
+这样就可以通过配置中的参数连接无线路由并且上网了。也可用ip或ifconfig设置静态ip地址。
+
+（5）停止的wifi方法
+killall -9 wpa_supplicant
+ifconfig wlan0 down
+
+

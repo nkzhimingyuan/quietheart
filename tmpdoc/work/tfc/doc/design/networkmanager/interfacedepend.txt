@@ -1,0 +1,440 @@
+svn °æ±¾£º1780
+
+netcfg.c
+===============
+GetDdnsPara
+Paramcfg.h (include):int GetDdnsPara(DDNSCfg_t *cfg, const eGetPara from);
+Aspform.c (modules\webserver\ipnc)
+Debug_cmd.c (modules\network)
+Html.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Ipncinit.c (apps\ipnc)
+Netcmd.c (modules\tcpserver)
+Onvif.c (platforms\onvif)
+
+
+SetDdnsPara
+Paramcfg.h (include):int SetDdnsPara(DDNSCfg_t *cfg, const eSetPara where);
+Aspform.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Netcmd.c (modules\tcpserver)
+Onvif.c (platforms\onvif)
+
+
+GetEtherNetIni
+Paramcfg.h (include):void GetEtherNetIni(Etherlink_t *cfg);
+Netcmd.c (modules\tcpserver)
+
+
+GetPPPOEIni
+Netconfig.h (include):int  GetPPPOEIni(PPPOECfg_t *cfg);
+
+
+SavePPPOEIni
+Netconfig.h (include):int  SavePPPOEIni(const PPPOECfg_t *cfg);
+
+
+isNetworkSegments
+Netcfg.c (modules\network):int  isNetworkSegments(char *ip, char *gateway)
+Ipfilercfg.c (modules\aaa)
+
+
+GetNetworkPara
+Paramcfg.h (include):int GetNetworkPara(NetCfg_t * cfg, const eGetPara from);
+Aspform.c (modules\webserver\ipnc)
+Debug_cmd.c (modules\system)
+Html.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Ipncinit.c (apps\ipnc)
+Onvif.c (platforms\onvif)
+Udpbroadcast.c (modules\udpbroadcast)
+
+
+SetNetConfigPara
+Paramcfg.h (include):int SetNetConfigPara(NetCfg_t *cfg, const eSetPara where, const int reStartIndex);
+Aspform.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Netcmd.c (modules\tcpserver)
+Onvif.c (platforms\onvif)
+Vsipcallback.c (platforms\vsip)
+
+
+SetPPPoePara
+Paramcfg.h (include):int SetPPPoePara(PPPOECfg_t *cfg, const eSetPara where, const int reStartIndex);
+Aspform.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Netcmd.c (modules\tcpserver)
+
+
+GetPPPoePara
+Paramcfg.h (include):int GetPPPoePara(PPPOECfg_t *cfg, const eGetPara from);
+Netcmd.c (modules\tcpserver)
+
+
+GetWifiPara
+Paramcfg.h (include):int GetWifiPara(WIFICfg_t *cfg, const eGetPara from);
+Aspform.c (modules\webserver\ipnc)
+Debug_cmd.c (modules\network)
+Html.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+
+
+SetWifiPara
+Paramcfg.h (include):int SetWifiPara(WIFICfg_t *cfg, const eSetPara where, const int reStartIndex);
+Aspform.c (modules\webserver\ipnc)
+
+
+
+netconfig.c
+===============
+CheckIPv4Addr
+Netconfig.h (include):int  CheckIPv4Addr(const char *addr);
+Ipfilter.c (modules\aaa)
+
+
+NetsGetIp
+Netconfig.h (include):int  NetsGetIp(const int s, char *ip);
+
+
+CheckWifiInfterExist
+Netconfig.h (include):int  CheckWifiInfterExist(void);
+Ipncinit.c (apps\ipnc)
+
+
+SetWifiInfterExistIdx
+Netconfig.h (include):void SetWifiInfterExistIdx(const int wifiEable); ///< wifiEable 0:diseable 1:eable
+Ipncinit.c (apps\ipnc)
+
+
+GetWifiInftreExistIdx
+Netconfig.h (include):int  GetWifiInftreExistIdx(void);
+Wifi.c (modules\network)
+
+
+GetPPPoe
+Netconfig.h (include):int GetPPPoe(PPPOECfg_t *pCfg);
+Netcfg.c (modules\network)
+
+
+SetPPPoe
+Netconfig.h (include):int  SetPPPoe(const PPPOECfg_t *pCfg);
+Netcfg.c (modules\network)
+
+
+SetEtherNet
+Paramcfg.h (include):int  SetEtherNet(Etherlink_t *cfg);
+Netcfg.c (modules\network)
+
+
+SetNetConfig
+Netconfig.h (include):int  SetNetConfig(const NetCfg_t *cfg);
+Ipncinit.c (apps\ipnc)
+Netcfg.c (modules\network)
+
+
+GetEthLinkStatus
+Netconfig.h (include):int  GetEthLinkStatus(NetLinkStatus_t *stat);
+Netcmd.c (modules\tcpserver)
+
+
+BringupLink
+Netconfig.h (include):int  BringupLink(const eNetInterface mod);
+
+
+ShutdownLink
+Netconfig.h (include):int  ShutdownLink(const eNetInterface  mod);
+
+
+InitNetWorkCfg
+Netconfig.h (include):int  InitNetWorkCfg(const NetCfg_t *cfg);
+Ipncinit.c (apps\ipnc)
+Udpbroadcast.c (modules\udpbroadcast)
+
+
+GetNetworkCfg
+Netconfig.h (include):int  GetNetworkCfg(NetCfg_t * cfg);
+Netcfg.c (modules\network)
+Netcmd.c (modules\tcpserver)
+Udpbroadcast.c (modules\udpbroadcast)
+Vsipcallback.c (platforms\vsip)
+
+
+NetGetActiveInterface
+Netconfig.h (include):char *NetGetActiveInterface(void);
+
+
+CheckNetworkLink
+Netconfig.h (include):int  CheckNetworkLink(const char *pInterface);
+Alarmproc.c (modules\alarm)
+
+
+CheckPeerIP
+Netconfig.h (include):int  CheckPeerIP(const int fdComm);
+
+
+CheckTcpIpPort
+Netconfig.h (include):int  CheckTcpIpPort(const char *ip, const int port);
+
+
+IPTest
+Paramcfg.h (include):int IPTest(char *ip);
+Aspform.c (modules\webserver\ipnc)
+
+
+TcpIpPortTest
+Paramcfg.h (include):int TcpIpPortTest(char *ip, const int port);
+
+
+StopDhcp
+Netconfig.h (include):void StopDhcp(void);
+
+
+StartDhcp
+Netconfig.h (include):void StartDhcp(const char *ifrname);
+Ipncinit.c (apps\ipnc)
+
+
+UnInitDhcp
+Netconfig.h (include):void UnInitDhcp(void);
+Ipncinit.c
+
+
+GetNetHwaddr
+Netconfig.h (include):int GetNetHwaddr(const char *ifname, char *mac);
+Ants_inter_param.c (platforms\ants)
+Ftpclient.c (modules\ftp)
+
+
+SetHWaddr
+Netconfig.h (include):int SetHWaddr(const char *ifname, const char *mac);
+Ipncinit.c (apps\ipnc)
+
+
+
+arping.c
+===============
+StartCheckIpcIpConflict
+Netconfig.h (include):int StartCheckIpcIpConflict(void);
+Ipncinit.c (apps\ipnc)
+
+
+StopCheckIpcIpConflict
+Netconfig.h (include):int StopCheckIpcIpConflict(void);
+Ipncinit.c (apps\ipnc)
+
+
+GetCheckIPConflictIdx
+Netconfig.h (include):int GetCheckIPConflictIdx(const char *ifname);
+Alarmproc.c (modules\alarm)
+
+
+CheckIpConflict
+Arping.c (modules\network):int CheckIpConflict(const u_int32_t ipaddr, const char *ifname)
+Netconfig.c (modules\network)
+
+
+
+ipv6.c
+====================
+Delipv6addr
+Netlink.h (modules\network):int Delipv6addr(const char *ifname, const char *address, const int addresstype);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+setipv6addr
+Netlink.h (modules\network):int setipv6addr(const char *ifname, const char *address, const int addresstype);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+Getipv6addr
+Netlink.h (modules\network):int Getipv6addr(const char * ifname, char *ipv6addr, int addrlen);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+GetGatewayIPV6
+Netlink.h (modules\network):int GetGatewayIPV6(const char *ifname, char *gwAddress);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+SetGatewayIPV6
+Netlink.h (modules\network):int SetGatewayIPV6(const char *ifname, const char *address);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+
+netlink.c
+===================
+CheckIpIsInternet
+Netconfig.h (include):int  CheckIpIsInternet(const unsigned int dwIp);
+Netctrl.c (modules\tcpserver)
+
+
+net_nic_up
+Netlink.h (modules\network):int net_nic_up(const char *ifname);
+Netconfig.c (modules\network)
+
+
+net_nic_down
+Netlink.h (modules\network):int net_nic_down(const char *ifname);
+Netconfig.c (modules\network)
+Netlink.c (modules\network)
+
+
+net_get_ifaddr
+Netlink.h (modules\network):int net_get_ifaddr(const char *ifname, char *ip);
+Alarmproc.c (modules\alarm)
+Arping.c (modules\network)
+Conflict.c (modules\multilan)
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+net_set_ifaddr
+Netlink.h (modules\network):int net_set_ifaddr(const char *ifname, const in_addr_t addr);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+net_get_netmask
+Netlink.h (modules\network):int	net_get_netmask(const char *ifname, char *netmask);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+net_set_netmask
+Netlink.h (modules\network):int net_set_netmask(const char *ifname, const in_addr_t addr);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+net_get_hwaddr
+Netlink.h (modules\network):int net_get_hwaddr(const char *ifname, char *mac);
+Arping.c (modules\network)
+Conflict.c (modules\multilan)
+Netconfig.c (modules\network)
+
+
+net_set_hwaddr
+Netlink.h (modules\network):int net_set_hwaddr(const char *ifname, const char *mac);
+Netconfig.c (modules\network)
+
+
+net_add_gateway
+Netlink.h (modules\network):int net_set_dns(const DNSAddr_t *dnsname);
+
+
+net_get_dns
+Netlink.h (modules\network):int	net_get_dns(DNSAddr_t *dns);
+Netconfig.c (modules\network)
+
+
+net_set_gateway
+Netlink.h (modules\network):int net_set_gateway(const in_addr_t addr, const char *ifrname);	
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+net_get_gateway
+Netlink.h (modules\network):int	net_get_gateway(char *gateway, const char *ifrname);
+Netconfig.c (modules\network)
+Wifi.c (modules\network)
+
+
+Check_Link_status
+Netlink.h (modules\network):int Check_Link_status(const char *pInterface);
+Netconfig.c (modules\network)
+
+
+check_nic
+Netlink.h (modules\network):int check_nic(const char *nic);
+
+
+
+portcfg.c
+===================
+GetPortPara
+Paramcfg.h (include):int GetPortPara(ServerPorts_t *cfg, const eGetPara form);
+Aspform.c (modules\webserver\ipnc)
+Html.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Ipncinit.c (apps\ipnc)
+Netcmd.c (modules\tcpserver)
+Onvif.c (platforms\onvif)
+Udpbroadcast.c (modules\udpbroadcast)
+
+
+SetPortPara
+Paramcfg.h (include):int SetPortPara(ServerPorts_t *pCfg, const eSetPara fromIdx);
+Aspform.c (modules\webserver\ipnc)
+IPC.cpp (platforms\ants)
+Netcmd.c (modules\tcpserver)
+Portcfg.c (modules\network)
+
+
+InitPort
+System.h (include):int  InitPort(void);
+Ipncinit.c (apps\ipnc)
+Portcfg.c (modules\network)
+Udpbroadcast.c (modules\udpbroadcast)
+
+
+pppoe.c
+===========================
+Pppoe.h (include\services):void BringupPPPOE(const char *name, const char *pwd);
+BringupPPPOE
+Debug_cmd.c (modules\network)
+Ipncinit.c (apps\ipnc)cfg.struPPPoE.szPassword);
+
+
+ShutdownPPPOE
+Pppoe.h (include\services):int ShutdownPPPOE(void);
+Debug_cmd.c (modules\network)
+Ipncinit.c (apps\ipnc)
+
+
+
+wifi.c
+=======================
+ProbeWifiAP
+Netconfig.h (include):int  ProbeWifiAP(WifiAPAttr_t *pList, const int num);
+
+
+SetWifiCfg
+Netconfig.h (include):int  SetWifiCfg(const WIFICfg_t *pCfg);
+Netcmd.c (modules\tcpserver)
+Netconfig.c (modules\network)
+
+
+GetWifiCfg
+Netconfig.h (include):int  GetWifiCfg(WIFICfg_t *pCfg);
+Netcmd.c (modules\tcpserver)
+
+
+SetWIFINetCfg
+Wifi.c (modules\network):int SetWIFINetCfg(const WIFINetCfg_t *cfg)
+Netconfig.c (modules\network)
+
+
+EnableWifiConn
+Netconfig.h (include):int  EnableWifiConn(void);
+
+
+DisableWifiConn
+Netconfig.h (include):int  DisableWifiConn(void);
+Ipncinit.c (apps\ipnc)
+
+
+GetWifiLinkStatus
+Netconfig.h (include):int  GetWifiLinkStatus(void);
+Html.c (modules\webserver\ipnc)
+
+
+GetWifiCurIP
+Netconfig.h (include):int  GetWifiCurIP(char *wifiIP);
+Html.c (modules\webserver\ipnc)
+

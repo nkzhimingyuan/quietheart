@@ -1,0 +1,138 @@
+启动
+系统
+烧写
+驱动
+
+1,uboot设置信息
+
+启动：
+bootcmd=nboot 0x80700000 0 0x500000;bootm 0x80700000
+
+参数：
+netmask=255.255.255.0
+mac=74:37:2F:99:99:98
+uuid=d4ce0480-7cf8-488a-8853-6e61d6f59026
+ipaddr=192.168.26.206
+gatewayip=192.168.26.1
+serverip=192.168.26.106
+setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/home/quietheart/nfs/filesys nolock ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${mac} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1
+
+
+注意：
+(1),板子的ip设置用来挂载nfs文件系统，设置的ip并不是任意的，应和网线链接的交换机的网口在一个网段。
+
+(2),r2和r3两个版本，文件系统可以查看/opt/ipnc中的配置文件知道文件系统的版本，硬件的如果摄像头有环则r3，而02的需要定时给一个芯片发信号（喂狗）。r02的如果超过1分钟不喂狗，就会自动重启，所以uboot里不要超过1分钟。启动之后有一个程序会自动喂狗。
+并且设置的时候，r2的ip要和nfs的在同一个网段，否则起来也仍然不行。可以先从板子启动，修改板子/mnt/nand/conf/net.ini下的一个配置网络的文件，将ip和网关改成和nfs一样的(因为启动ipnc程序之后会根据这个配置修改uboot启动时配置的ip地址，所以修改前后网段要一致，修改之后板子才可用)。
+
+(3),如果可以，建议设置的uboot中，要将ipaddr设置成设备的IP才行，设备的ip可以用
+http://<ipaddr>
+登录信息：
+root
+888888
+来查看(或者admin:admin)。
+
+(4)windows下，可以用securecrt或者putty来链接，如果usb转串口的，linux设置成ttyUSB0-xx，windows需要查看电脑->管理->设备管理器中的usb串口转换看成有哪个com.
+securecrt设置时的：
+dtr/dsr
+xon/off
+rts/cts
+全部取消。
+
+(5)初始/mnt/nand/cfg中可能没有配置文件（例如net.ini），启动之后，用浏览器登录板子设置net或者wifi等之后，会生成相应的配置文件。
+配置文件可能会错误，我们可以手动删除，或者：
+flash_eraseall /dev/mtd6               
+mount -t yaffs2 /dev/mtdblock6 /mnt/nand
+
+(6)烧写时的配置
+烧写的具体细节，参考后面。
+
+一般uboot中有如下的变量定义：
+loadaddr=82000000
+bootaddr=80700000
+kernel1addr=500000
+kernel1erasesize=400000
+kernel1writesize=360000
+rootfs1addr=900000
+rootfs1erasesize=2000000
+rootfs1writesize=1400000
+kernel2addr=2900000
+kernel2erasesize=400000
+kernel2writesize=360000
+rootfs2addr=2D00000
+rootfs2erasesize=2000000
+rootfs2writesize=1400000
+set_system1=run bootcmd_kernel1;run bootargs_rootfs1
+set_system2=run bootcmd_kernel2;run bootargs_rootfs2
+update_kernel1=tftp ${loadaddr} uImage;nand erase ${kernel1addr} ${kernel1erasesize};nand write ${loadaddr} ${kernel1addr} ${kernel1writesize};
+update_rootfs1=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs1addr} ${rootfs1erasesize};nand write ${loadaddr} ${rootfs1addr} ${rootfs1wris
+ize}
+update_kernel2=tftp ${loadaddr} uImage;nand erase ${kernel2addr} ${kernel2erasesize};nand write ${loadaddr} ${kernel2addr} ${kernel2writesize};
+update_rootfs2=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs2addr} ${rootfs2erasesize};nand write ${loadaddr} ${rootfs2addr} ${rootfs2wrie
+size}
+update_system1=run update_kernel1;run update_rootfs1;run set_system1;echo ********TFTP Update System1 Finished!!!********
+update_system2=run update_kernel2;run update_rootfs2;run set_system2;echo ********TFTP Update System2 Finished!!!********
+
+便于开发时烧写和设置文件系统。例如
+>run update_system1
+会将内核更新，并且烧入文件系统镜像。
+
+>run set_system1
+会将刚刚烧写的system1设置为启动的系统。
+
+
+
+(7)一些其他的命令
+set ipaddr 192.168.28.10
+set serverip 192.168.28.108
+set gatewayip 192.168.28.1
+set netmask 255.255.255.0
+setenv bootcmd 'nboot 0x80700000 0 0x500000;bootm 0x80700000';saveenv
+
+nfs:
+set bootargs mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/nfs/cuizhenyi/filesys nolock ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+
+ram:
+set bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+
+
+
+vi /mnt/nand/cfg/net.ini
+
+
+4,烧写：
+tools目录下会编译一个独立的工具，可以将文件系统和内核制作成统一的镜像，然后同过浏览器访问板子进行升级。或者可以独立制作文件系统的cramfs镜像（只读），然后将文件系统和内核拷贝到tftp服务器中，使用相关命令进行烧写(参见前面的update_system1)。
+最后uboot下设置(两种都行)
+
+最新干净的文件系统
+http://192.168.3.19:8443/svn/IPMediaDevice/trunk/src/davinci/filesys.tar.gz
+在：192.168.3.16:/var/lib/jenkins/jobs中也有相应的更新。
+
+内核
+/home/quietheart/work/develop/IPMediaDevice/trunk/src/davinci/mvl-kernel
+编译好的在：/home/quietheart/work/develop/IPMediaDevice/trunk/src/ipmd/tools/.../uImage
+
+制作文件系统镜像
+ipmd $ make cramfs
+其实就是：mk.cramfs <filesys> <outputname> 
+
+制作内核文件系统内核统一镜像
+tools$ cd 2_网络远程升级包制作/
+$ vim firmware.config
+...
+$make mkfirmware
+
+因为cramfs只读，所以使用第6分区存放配置“/mnt/nand/cfg”，如果混乱了，可以将这个分区内容格式化清空。
+
+串口可以插拔组合到别的板子。
+wifi测试需要wifi芯片，插入到usb上面。
+
+
+
+
+
+uboot:
+set loadaddr 82000000;set bootaddr 80700000;set kernel1addr 500000;set kernel1erasesize 400000;set kernel1writesize 360000;set rootfs1addr 900000;set rootfs1erasesize 2000000;set rootfs1writesize 1400000;set kernel2addr 2900000;set kernel2erasesize 400000;set kernel2writesize 360000;set rootfs2addr 2D00000;set rootfs2erasesize 2000000;set rootfs2writesize 1400000;set set_system1 'run bootcmd_kernel1;run bootargs_rootfs1';set set_system2 'run bootcmd_kernel2;run bootargs_rootfs2';set update_kernel1 'tftp ${loadaddr} uImage;nand erase ${kernel1addr} ${kernel1erasesize};nand write ${loadaddr} ${kernel1addr} ${kernel1writesize};';set update_rootfs1 'tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs1addr} ${rootfs1erasesize};nand write ${loadaddr} ${rootfs1addr} ${rootfs1wrisize}';set update_kernel2 'tftp ${loadaddr} uImage;nand erase ${kernel2addr} ${kernel2erasesize};nand write ${loadaddr} ${kernel2addr} ${kernel2writesize};';set update_rootfs2 'tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs2addr} ${rootfs2erasesize};nand write ${loadaddr} ${rootfs2addr} ${rootfs2wriesize}';set update_system1 'run update_kernel1;run update_rootfs1;run set_system1;echo ********TFTP Update System1 Finished!!!********';set update_system2 'run update_kernel2;run update_rootfs2;run set_system2;echo ********TFTP Update System2 Finished!!!********';set filesize D1B000;set fileaddr 82000000;set bootcmd 'nboot 0x80700000 0 0x500000;bootm 0x80700000';set mac 74:37:2F:99:99:98;set uuid d4ce0480-7cf8-488a-8853-6e61d6f59026;set stdin serial;set stdout serial;set stderr serial;set ethaddr 74:37:2F:00:00:00;set ipaddr 192.168.0.120;set serverip 192.168.0.112;set gatewayip 192.168.0.1;set netmask 255.255.255.0;set bootcmd_kernel1 setenv bootcmd \'nboot 0x80700000 0 0x500000\;bootm 0x80700000\'\;set bootcmd_kernel2 setenv bootcmd \'nboot 0x80700000 0 0x2900000\;bootm 0x80700000\'\;saveenv
+
+set bootargs_rootfs1 'setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;' 
+set bootargs_rootfs2 'setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock5 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;'saveenv
+set bootdelay 1;

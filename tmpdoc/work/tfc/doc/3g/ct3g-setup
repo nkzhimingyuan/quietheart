@@ -1,0 +1,53 @@
+#!/bin/sh
+[ $# -ne 4 ] && 
+{
+    echo "usage $0 <pppdscript> <user> <password> <chatscript>"
+    exit 1
+}
+
+ECHO=/bin/echo
+FILENAME=$1
+USER=$2
+PASSWORD=$3
+CHATSCRIPT=$4
+
+$ECHO "Start to creating dir PPP and RUN" 
+cd /mnt/nand
+if [ -d /mnt/nand/ppp ] ; then
+   $ECHO "PPP is exist!"
+else
+   mkdir ppp
+fi
+if [ -d /mnt/nand/run ] ; then
+   $ECHO "RUN is exist!"
+else
+   mkdir run
+fi
+cp -rf /etc/pppconfig/* /mnt/nand/ppp
+cd ./ppp
+chmod 777 * -R
+cd /mnt/nand
+chmod 777 run
+$ECHO "End of creating dir PPP and RUN"
+
+
+cat > "$FILENAME" <<filecontent
+#This is pppd script used by huawei ce189.
+/dev/ttyUSB0
+115200
+crtscts
+modem
+debug
+lock
+nodetach
+usepeerdns
+defaultroute
+noipdefault
+noauth
+user "$USER"
+password "$PASSWORD"
+#lcp-echo-failure 5
+#lcp-echo-interval 30
+0.0.0.0:0.0.0.0
+connect '/usr/sbin/chat -s -v -f $CHATSCRIPT'
+filecontent

@@ -1,0 +1,316 @@
+嵌入式Linux系统实现3G网卡拨号
+
+3g usb模块（华为ce189的3g网卡）+一张sim卡(电信cdma2000)
+
+一、在pc端确认拨号功能可用
+在windows下直接插入网卡即可自动安装其驱动，比较简单直观，其实linux下连接也很简单，这里给出linux下的连接方式。
+系统：Ubuntu 12.04
+1、将sim卡插入3g网卡，再将3g网卡插入pc。
+
+2、对3g网卡进行网络配置
+这里有图形和命令行两种方式。后面在嵌入式系统中会采用命令行方式配置3g信息。
+2.1、图形方式
+通过图形设置比较直观，可大致了解3g配置所需的信息。
+编辑链接->移动宽带->添加（新连接名为china telecom 1）
+具体配置：
+(1)IP配置：自动（即ppp自动）
+(2)移动宽带：
+编号：#777
+用户名：ctnet@mycdma.cn
+密码：vnet.mobi
+(3)ppp设置：
+默认。
+即chap、pap等鉴权方式都选中。
+（4）连接
+保存上述配置后，即可通过点击新建的连接"china telecom 1"连上。
+（5）确认联网情况
+ifconfig可见网络的名字为ppp0
+通过firefox即可上网。
+
+2.2命令行脚本方式：
+通过pppd拨号上网，可以对连接过程有更深一步的了解，且使用预先配置好的信息，无需用户干预。如下
+（1）pppd对cdma2000的拨号脚本
+#cat /etc/ppp/peers/cdma2000ce189
+#This is pppd script used by huawei ce189.
+/dev/ttyUSB0
+115200
+crtscts
+modem
+debug
+lock
+nodetach
+usepeerdns
+defaultroute
+noipdefault
+noauth
+user "ctnet@mycdma.cn"
+password "vnet.mobi"
+#lcp-echo-failure 5
+#lcp-echo-interval 30
+0.0.0.0:0.0.0.0
+connect '/usr/sbin/chat -s -v -f /etc/ppp/cdma2000-connect-chat'
+这里，注意，noauth选项一定要有。
+
+（2）pppd拨号脚本调用的chat拨号脚本
+#cat /etc/ppp/cdma2000-connect-chat
+TIMEOUT 5
+ABORT "DELAYED"
+ABORT "BUSY"
+ABORT "ERROR"
+ABORT "NO DIALTONE"
+ABORT "NO CARRIER"
+""   AT
+"OK-+++\c-OK" ATH0
+TIMEOUT 40
+""   AT
+OK  ATDT#777
+CONNECT ""
+这里，脚本含义参见"man chat"，基本每行是"<期望接收的字符> <发送字符>"。
+
+（3）调用pppd拨号脚本：
+#pppd call cdma2000ce189
+这里，即调用前面的脚本配置并连接上网。结果和图形的一样。通过"Ctrl-C"即可断开连接。
+
+至此，即可通过图形或命令行方式实现3g上网。
+
+
+
+二、在嵌入式端的实现
+在嵌入式板子上实现3G连接过程类似，不过需要可运行在嵌入式板上的工具。
+内核版本：2.6.18
+1、交叉编译必要的工具
+（1）libusb-1.0.9:
+用于编译usb-modeswitch-2.0.1
+http://sourceforge.net/projects/libusb/postdownload?source=dlp
+
+（2）usb-modeswitch-2.0.1：
+用于切换网卡的模式
+http://www.draisberghof.de/usb_modeswitch/#download
+
+（3）usb-modeswitch-data-20130807
+用于切换时指定切换的型号。
+http://www.draisberghof.de/usb_modeswitch/#download
+
+（4）ppp-2.4.4
+用于拨号的pppd，和发送拨号命令的chat程序（可单独编译）。
+ftp://ftp.samba.org/pub/ppp
+
+以上程序可参考如下Makefile进行编译：
+#cat Makefile
+CROSS_TOOL   :=/usr/local/montavista/pro/devkit/arm/v5t_le/bin/arm_v5t_le-
+CC=$(CROSS_TOOL)gcc
+AR=$(CROSS_TOOL)ar
+LD=$(CROSS_TOOL)g++
+STRIP=$(CROSS_TOOL)strip
+CPLUSPLUS=$(CROSS_TOOL)g++
+LIBRARY_LINK = $(CROSS_TOOL)ld -o
+
+
+CUR_DIR:=$(PWD)
+THE_SRC:=usb-modeswitch-2.0.1
+THE_BUILD:=build_path
+THE_INSTALL:=install_path
+
+depend:
+	mkdir -p ${THE_BUILD}/${THE_BUILD}
+	mkdir -p ${CUR_DIR}/${THE_INSTALL}
+	cd ${CUR_DIR}/${THE_BUILD} && ../${THE_SRC}/configure --build=i686 --host=arm-linux --prefix=${CUR_DIR}/${THE_INSTALL}
+
+
+build:
+	cd ${CUR_DIR}/${THE_BUILD} && make
+
+
+install:
+	cd ${CUR_DIR}/${THE_BUILD} && make install
+
+
+clean:
+	cd ${CUR_DIR}/${THE_BUILD} && make clean
+	rm -rf ${CUR_DIR}/${THE_INSTALL}
+	rm -rf ${CUR_DIR}/${THE_BUILD}
+
+.PHONY:depend libs clean
+关键在于CROSS_TOOL和THE_SRC的设定，以及代码中的Makefile。具体过程省略，请参考参考资料。
+
+2、配置内核
+打开ppp相关配置：
+Device Drivers  --->
+    [*] Network device support  --->
+     <*>   PPP (point-to-point protocol) support
+          [*]     PPP multilink support (EXPERIMENTAL) 
+          [*]     PPP filtering
+          <*>     PPP support for async serial ports
+          <*>     PPP support for sync tty ports 
+
+打开usb串口相关配置：
+[*] USB support  ---> 
+    <*>   USB Serial Converter support  --->
+        [*]   USB Serial Console device support
+        [*]   USB Generic Serial Driver
+        <*>   USB driver for GSM and CDMA modems
+
+3、确定产品型号
+3.1、配置好的内核，先编译后，启动系统，插入模块usbserial.ko、option.ko。
+3.2、插入3g网卡，
+#lsusb
+这样会显示相应信息：
+12d1:1505
+这里，若无lsusb命令，可以查看/sys/bus/usb/devices/下有相应的设备信息，其中：
+# cat /sys/bus/usb/devices/1-1/idProduct 
+1505
+# cat /sys/bus/usb/devices/1-1/idVendor 
+12d1
+这里假设是1-1。
+3.3、切换网卡模式
+可理解为以前usb网卡都被识别为usb存储类型，这里切换相当于将usb网卡拔掉，再改变模式再插上，这样识别成合适的usb类型。
+#usb_modeswitch -c /etc/usb_modswitch.d/12d1:1505
+切换后查看切换后的设备信息：
+# cat /sys/bus/usb/devices/1-1/idProduct 
+140c
+# cat /sys/bus/usb/devices/1-1/idVendor 
+12d1
+这里，12d1实际是厂商号“华为”，140c实际是该厂商的设备产品号。
+
+4、修改内核代码，添加相应设备：
+#vim kernel/drivers/usb/serial/option.c
+添加内容：
+...
+#define HUAWEI_VENDOR_ID                0x12D1
+...
+#define HUAWEI_PRODUCT_CE189            0x140c
+...
+static struct usb_device_id option_ids[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+static struct usb_device_id option_ids1[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+
+
+5、拨号
+5.1、对修改好的内核模块编译后，重启系统并插入模块：
+#insmod usbserial.ko
+#insmod option.ko
+
+
+
+参考资料：
+http://www.linuxidc.com/Linux/2011-03/33682.htm
+http://blog.csdn.net/haomcu/article/details/7285891
+
+5.2、切换3g网卡的usb模式
+#usb_modeswitch -c /etc/usb_modswitch.d/12d1:1505
+...
+[  124.770000] option 1-1:1.0: GSM modem (1-port) converter detected
+[  124.780000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB0
+[  124.790000] option 1-1:1.1: GSM modem (1-port) converter detected
+[  124.800000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB1
+[  124.810000] option 1-1:1.2: GSM modem (1-port) converter detected
+[  124.810000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB2
+[  124.830000] option 1-1:1.3: GSM modem (1-port) converter detected
+[  124.830000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB3
+[  124.850000] option 1-1:1.4: GSM modem (1-port) converter detected
+[  124.860000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB4
+...
+#mknod /dev/ttyUSB0 c 188 0
+#mknod /dev/ttyUSB1 c 188 1
+#mknod /dev/ttyUSB2 c 188 2
+#mknod /dev/ttyUSB3 c 188 3
+#mknod /dev/ttyUSB4 c 188 4
+这里，根据切换后的提醒，建立相应的通讯设备节点。
+
+5.3、拨号
+按照和pc一样的方式，建立pppd拨号脚本和chat脚本，并拨号：
+#pppd cdma2000ce189
+最后会连接成功。
+
+5.4、联网
+这里，拔掉网线，确保只有3g网络
+# ifconfig
+eth0      Link encap:Ethernet  HWaddr 74:37:2F:00:00:00
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:338 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:304 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:166139 (162.2 KiB)  TX bytes:39884 (38.9 KiB)
+          Interrupt:52 Base address:0x7000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:12 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:1669 (1.6 KiB)  TX bytes:1669 (1.6 KiB)
+
+ppp0      Link encap:Point-to-Point Protocol  
+          inet addr:183.41.122.220  P-t-P:183.41.0.1  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1500  Metric:1
+          RX packets:3 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:11 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:3 
+          RX bytes:66 (66.0 B)  TX bytes:3164 (3.0 KiB)
+
+路由：
+# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+183.41.0.1      *               255.255.255.255 UH    0      0        0 ppp0
+default         *               0.0.0.0         U     0      0        0 ppp0
+
+5.5、ping百度：
+# ping www.baidu.com
+ping: bad address 'www.baidu.com'
+# ping 115.239.210.27
+PING 115.239.210.27 (115.239.210.27): 56 data bytes
+64 bytes from 115.239.210.27: seq=0 ttl=56 time=2260.913 ms
+64 bytes from 115.239.210.27: seq=1 ttl=56 time=1254.671 ms
+64 bytes from 115.239.210.27: seq=2 ttl=56 time=250.752 ms
+64 bytes from 115.239.210.27: seq=3 ttl=56 time=125.597 ms
+这里可手动设置/etc/resolv.conf，添加百度的dns信息。
+
+
+三、其它
+1、注意：
+在前面“二、在嵌入式端的实现”的第3步，尝试过直接用3g网卡的设备信息添加至option.c，并且不用usb_modeswitch，结果失败。
+可做参考，如下：
+
+*修改内核代码，添加相应设备：
+#vim kernel/drivers/usb/serial/option.c
+添加内容：
+...
+#define HUAWEI_VENDOR_ID                0x12D1
+...
+#define HUAWEI_PRODUCT_CE189            0x1505
+...
+static struct usb_device_id option_ids[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+static struct usb_device_id option_ids1[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+
+*启动
+#insmod usbserial.ko
+#insmod option.ko
+...
+[  124.780000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB0。
+...
+#mknod /dev/ttyUSB0 c 188 0
+按照提醒，手动建立设备节点/dev/ttyUSB0，然后采用和pc一样的拨号脚本，无法拨通，原因是没有其他通道(/dev/ttyUSB1等)。
+
+

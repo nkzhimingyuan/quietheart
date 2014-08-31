@@ -1,0 +1,11 @@
+应用程序需要对ipv6支持：
+goahead服务器目前不支持ipv6访问，如果支持ipv6，可能需要修改源代码，或编译时指定好配置选项
+embedthis.com/products/goahead/doc/guide/goahead/users/ports.html
+http://www.docin.com/p-717116741.html
+http://www.cqvip.com/Read/Read.aspx?id=38559496
+
+telnetd服务若支持ipv6，可能需要修改配置文件或重新编译。
+（确认在pc上的telnet服务修改相应配置文件后，可在板子上用telnet登录）
+
+需要配置隧道？
+隧道技术不行，需要地址头转换将ipv6的包转换成ipv4的包。

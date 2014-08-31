@@ -1,0 +1,57 @@
+DM36x IPNC:>pri
+bootcmd_kernel1=setenv bootcmd 'nboot 0x80700000 0 0x500000;bootm 0x80700000';saveenv
+bootcmd_kernel2=setenv bootcmd 'nboot 0x80700000 0 0x2900000;bootm 0x80700000';saveenv
+bootargs_nfs=setenv bootargs mem=48M tfc=${tfc} console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/home/jiangjx/UbuntuShare/filesys nolock ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+bootargs_rootfs1=setenv bootargs mem=48M tfc=${tfc} console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+bootargs_rootfs2=setenv bootargs mem=48M tfc=${tfc} console=ttyS0,115200n8 root=/dev/mtdblock5 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+baudrate=115200
+ethaddr=74:37:2F:00:00:00
+bootfile="uImage"
+tfc=8
+loadaddr=82000000
+bootaddr=80700000
+kernel1addr=500000
+kernel1erasesize=400000
+kernel1writesize=360000
+rootfs1addr=900000
+rootfs1erasesize=2000000
+rootfs1writesize=1400000
+kernel2addr=2900000
+kernel2erasesize=400000
+kernel2writesize=360000
+rootfs2addr=2D00000
+rootfs2erasesize=2000000
+rootfs2writesize=1400000
+led_on=mw 01C4000C E15AFFFF;mw 01C67010 0;mw 01C6701C FFFFFFFF
+led_off=mw 01C4000C E15AFFFF;mw 01C67010 0;mw 01C67018 FFFFFFFF
+erase_env=nand erase 4C0000 20000
+set_system1=run bootcmd_kernel1;run bootargs_rootfs1
+set_system2=run bootcmd_kernel2;run bootargs_rootfs2
+update_ubl=tftp ${loadaddr} ubl_blk01;nand erase 20000 20000;nand write ${loadaddr} 20000 20000;
+update_uboot=tftp ${loadaddr} uboot_blk25;nand erase 320000 80000;nand write ${loadaddr} 320000 80000;
+update_kernel1=tftp ${loadaddr} uImage;nand erase ${kernel1addr} ${kernel1erasesize};nand write ${loadaddr} ${kernel1addr} ${kernel1writesize};
+update_rootfs1=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs1addr} ${rootfs1erasesize};nand write ${loadaddr} ${rootfs1addr} ${rootfs1writesize}
+update_kernel2=tftp ${loadaddr} uImage;nand erase ${kernel2addr} ${kernel2erasesize};nand write ${loadaddr} ${kernel2addr} ${kernel2writesize};
+update_rootfs2=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs2addr} ${rootfs2erasesize};nand write ${loadaddr} ${rootfs2addr} ${rootfs2writesize}
+update_system1=run update_kernel1;run update_rootfs1;run set_system1;echo ********TFTP Update System1 Finished!!!********
+update_system2=run update_kernel2;run update_rootfs2;run set_system2;echo ********TFTP Update System2 Finished!!!********
+dram=128
+uuid=9437d32d-04dd-42e5-984a-47521569292d
+gateway=192.168.28.1
+filesize=1125000
+fileaddr=82000000
+partition_flag=1
+bootdelay=1
+update_flag_ok=2
+ipaddr=192.168.0.228
+serverip=192.168.0.112
+gatewayip=192.168.0.1
+netmask=255.255.255.0
+bootcmd=nboot 0x80700000 0 0x500000;bootm 0x80700000
+bootargs=mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=192.168.28.221:/home/huangwei/filesys/ipmd/filesys nolock ip=192.168.28.225:192.168.28.221:192.168.28.1:255.255.255.0::eth0:off eth=00:02:04:06:05:04 cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1 tfc=8
+stdin=serial
+stdout=serial
+stderr=serial
+ver=dm36x_uboot_v3.00 (Sep 30 2013 - 08:58:28)
+
+Environment size: 3720/131068 bytes

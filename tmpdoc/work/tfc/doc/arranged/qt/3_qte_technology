@@ -1,0 +1,547 @@
+Qt开发系列3——Qt中的核心技术1
+
+这里简单介绍Qt的一些核心机制，具体参见Qt文档。
+包含内容：
+（*）Qt的信号和槽，以及事件机制
+（*）Qt Object Model
+（*）Qt Embedded for linux简介
+（*）事件机制
+（*）显示机制
+（*）Qt的通信机制
+（*）Qt的插件系统（机制）
+（*）Qt内存管理机制
+（*）Qt的Model/View编程模式
+（*）绘制系统
+
+
+
+具体如下：
+（*）Qt的信号和槽，以及事件机制
+=======================
+信号和槽提供了一种在一个对象中，直接调用另一个对象任意成员函数的机制。类似回调，但比直接调用回调函数灵活（例如会自动处理虚函数调用），相应的调用的性能也有一定下降(开销很小，比new和delete操作小)。
+
+
+（*）Qt Object Model
+=======================
+需要注意两点：Qt对标准C++通过此模型进行了一定的扩展；Qt中对象的赋值和克隆完全不同，后者所做工作更多。
+
+
+（*）Meta-Object System
+=======================
+此特性通过Qt的moc工具，为每一个使用Qt特性的类生成一个moc对象来实现。它包含了Qt对C++的许多扩展性能的处理和实现。如：
+信号和槽的机制
+动态添加类属性的机制
+不通过RTTI获取类名的机制
+获取继承关系的机制等。
+使用此特性的方法很简单，只需在相应的Qt类中继承QObject，并且在开始声明Q_OBJECT宏。编译时，需要用moc生成相应的moc对象实现的cpp文件，并链接；但是使用qmake工具的话，会自动生成Makefile，不用手动去做。
+
+
+（*）Qt Embedded for linux简介
+=======================
+    相对Qt的桌面程序，QTE自己提供了一个轻量级的窗口管理系统，其应用程序直接操作framebuffer，而不使用Xwindow系统这样的桌面管理程序，可以节省内存。也可以使用VNC远程桌面控制协议，运行应用程序。
+
+（1）服务端和客户端
+    QtEmbedded应用启动时，需要一个服务端，或者是一个已有的服务端，或者应用程序本身作为一个服务端启动。任何一个QTE程序都可以成为服务端程序（通过启动选项中的-qws指定，或者在编码中指定），启动好一个服务端之后，后续的QTE程序都将作为客户端的角色运行。
+
+    服务端主要负责管理鼠标键盘输入、显示输出、屏幕保护以及光标显示等内容（类似图形系统中的桌面管理系统），而客户端则借助服务端提供的服务，完成特定的应用程序功能。所有系统产生的事件（例如键盘鼠标事件），都会传递给服务端，然后分发给特定的客户端处理。
+
+    运行的应用程序会不断地通过添加和减少widgets来更改屏幕的外观。服务端会在相应的QWSWindow 类对象中维护没一个顶层窗口的信息。当服务端接受到事件，它会通过询问它的顶层窗口栈，来找到包含事件位置的窗口。每个窗口又可以知道创建它自身的客户应用程序。服务端会在最后将封装成QWSEvent类对象的事件转发给相应的应用程序（客户端）。
+
+    输入法使用一个介于服务端和客户端的filter来实现。我们继承QWSInputMethod来实现自定义的输入法，再使用服务端的setCurrentInputMethod()来安装它。另外，也可使用QWSServer::KeyboardFilter类来实现一个全局的底层的filter，对key events进行过滤处理，这样可以用于一些特殊目的，无需为所有应用程序添加一个filter（例如通过一个按钮进行高级电源管理）。
+
+（2）通信
+    server通过unix域套接字和client进行通信。客户段和服务端通信时，使用的是QCopChannel类，QCOP是一个在不同channel可以进行多对多通信的协议。一个channel通过一个名字标识，任何程序都可以侦听这个channel，QCOP协议可以允许客户端在相同地址空间也可在不同的进程间通信。
+
+（3）指针输入
+    QTE服务端启动时，使用QT的插件机制，将鼠标驱动加载。鼠标驱动接受设备产生的鼠标事件，并将其封装成 QWSEvent 类，传递给服务端。
+    QT默认提供了一个鼠标驱动，我们可以继承QWSMouseHandler实现自定义的鼠标驱动。 QMouseDriverFactory默认会在服务端运行时，自动检测到该驱动，并将其加载。
+    除通常的鼠标输入外，QTE提供了一个calibrated mouse handler。当系统设备无法具有设备和屏幕的固定映射，以及有噪声事件时（例如触摸屏），使用QWSCalibratedMouseHandler作为基类来实现使用。
+
+（4）字符输入
+    QTE服务端启动时，使用QT的插件机制，将键盘驱动加载。键盘驱动接受设备产生的键盘事件，并将其封装成 QWSEvent 类，传递给服务端。
+    QT默认提供了一个键盘驱动，我们可以继承 QWSKeyboardHandler实现自定义的键盘驱动。QKbdDriverFactory默认会在服务端运行时，自动检测到该驱动，并将其加载。
+
+（5）显示输出
+    每个客户端默认会将它的widgets和decorations提交到内存，同时服务端将相应内存拷贝到设备的framebuffer。
+    当客户端接收到一个可以更改它widgets的事件时，应用程序就会更新它内存缓存的相应部分。
+    decoration在客户应用程序启动时通过QT插件系统加载，可以通过继承QDecoration来自定义一个decoration插件。默认QDecorationFactory会自动检测到这个插件并加载给应用程序。我们可以用QApplication::qwsSetDecoration()函数来为应用程序指定一个给定的decoration。
+
+
+（*）事件机制
+=======================
+参考：http://blog.csdn.net/wangqis/article/details/4547997
+事件机制主要用于对Qt类的实现，与信号和槽的区别是它用于类自身使用而非为其它对象调用提供接口（例如在事件处理函数中发送信号）。由Qt自身的事件循环机制维护。
+（a）事件循环
+Qt程序启动后，通过QApplication::exec()进入事件循环，对事件进行派发处理。
+该循环大致如下：
+while ( !app_exit_loop )
+{
+    while( !postedEvents ) { processPostedEvents() }
+    while( !qwsEvnts ){ qwsProcessEvents();   }
+    while( !postedEvents ) { processPostedEvents() }
+
+}
+先处理Qt事件队列中的事件, 直至为空. 再处理系统消息队列中的消息, 直至为空, 在处理系统消息的时候会产生新的Qt事件, 需要对其再次进行处理.事件的派发处理通过QApplication::notify()进行。
+
+调用QApplication::sendEvent的时候, 消息会立即被处理,是同步的. 实际上QApplication::sendEvent()是通过调用QApplication::notify(), 直接进入了事件的派发和处理环节.
+
+（b）派发处理
+假设Qt程序(QApplication)的QWidget发生事件QEvent，那么处理的次序是：
+1，QApplication::notify()对QEvent进行派发
+2，在QApplication::notify()中，用安装在QApplication上的事件过滤器处理
+3，在QApplication::notify()中，调用QObject::event()对事件进行处理
+4，在QObject::event()中，用安装在QWidget上的事件过滤器处理
+5，在QObject::event()中，调用QWidget自己的XXXEvent函数进行处理
+
+（c）事件转发
+事件在QWidget中处理后，通过返回true或false来标志是否处理完。处理完则不转发，否则向上依次转发给父窗口，直至被处理或到顶层窗口。
+
+
+（*）显示机制
+=======================
+Qt默认情况，客户端提交显示widgets的相关请求到内存，服务端会遍历所有客户端的顶层窗口确认显示区域，将所有客户端的显示相关请求从内存中拷贝到屏幕上，期间，会使用到Qt的screen驱动（screen驱动的加载涉及到Qt的插件机制）。但是对于已知硬件信息的时候，客户端可以直接来操作和控制硬件而不用借助服务端（这在嵌入式系统中也是很常见的），后面会介绍两种直接和硬件交互的方法。另外，我们还可创建自己的显示机制，充分利用硬件性能。
+
+（1）关于screen驱动显示
+screen驱动会根据一个和显示区域有交叠的所有顶层的窗口列表，来确认更新显示的内存。每个顶层窗口都有一个QWSWindowSurface类来表示其绘制区域，screendriver根据这些类对象来获取相应的内存块指针。最后，screen驱动会对这些内存块进行合成，并将更新的显示区域提交到framebuffer显示出来。
+Qt提供的显示驱动主要有：
+ Linux framebuffer：直接在linux系统的framebuffer上进行显示相关操作。
+ the virtual framebuffer：通过qvfb程序模拟出虚拟的framebuffer设备，在其中进行显示相关操作。
+ transformed screens：和屏幕旋转相关的操作。
+ VNC servers：服务端会启动一个小型的vnc服务，网络上的其它机器通过vnc方式访问其内容，服务端通过vnc进行显示。
+ multi screens：同时支持多种显示驱动的驱动。
+需在编译QTE时，配置好需要使用的驱动。
+
+指定显示驱动：
+可通过环境变量"QWS_DISPLAY"，或者命令行选项"-display"指定通过哪种驱动显示。例如：
+启动服务后，
+(a)通过环境变量：
+#export QWS_DISPLAY="VNC:0"
+#myApplication＆
+(b)通过命令行选项：
+#myApplication -display "VNC:0"
+均表示使用vnc进行显示，其它具体显示参数需参见文档。
+
+我们可以通过继承QScreen类以及创建一个继承自QScreenDriverPlugin类的插件，来使用自己定义的显示驱动插件。QScreenDriverFactory类默认会自动检测到这个插件，并在运行时将它加载至服务程序。
+
+（2）关于客户端直接显示
+前面提到的，客户端可以直接来操作和控制硬件而不用借助服务端来显示的两种方式：
+第一种是设置 Qt::WA_PaintOnScreen属性（如果所有的widget都这样显示，我们可以设置环境变量QT_ONSCREEN_PAINT）。设置后，应用程序会直接将其widget显示到屏幕上，并且其相关的显示区域将不会被screen驱动修改（除非有一个持有更高窗层焦点的程序在同样的区域有提交窗口更新相关的请求）。
+第二种是使用QDirectPainter。这样可以完全控制一处预先保留的framebuffer区域（通过持有一块framebuffer的指针），screen驱动也再也无法修改这片区域了。但是如果当前屏幕有子屏幕，我们还是需要借助screen驱动的相关函数来获取正确的屏幕，获取当前的屏幕，以及恢复之前的framebuffer指针。
+
+（3）加速显示
+对QTE来说，绘制显示是一个纯软件实现，为充分利用特殊硬件的显示加速特性，我们可以自己添加更高性能的图形绘制驱动。
+前面说过，客户端使用Qt的绘图系统将每个窗口提交给一个window surface对象，然后将其保存到内存，screen驱动会访问这些内存并将这些surface合并，并显示出来。
+为了添加一个加速的图形显示驱动，我们需要自己创建一个screen，一个图形绘制引擎，一个支持绘制引擎的图形绘制设备，一个支持图形设备的窗口的surface，并且使screen可以识别这个surface。具体需参见"accelerated graphics driver"的文档。
+
+
+（*）Qt的通信机制
+=======================
+Qt为Qt应用程序提供以下通信机制
+（1）D-Bus
+QtDBus模块是一个unix库，可以使用它基于D-Bus协议进行通信。它将Qt的信号和槽的机制扩展到IPC层，允许一个进程的信号可以连接另外一个进程的槽。
+（2）TCP/IP
+跨平台的QtNetwork模块提供的类便于网络编程和移植。它提供了高层类（如Http,QFtp）等，可以用于和特定应用层协议通信；也提供了低层类（如QTcpSocket,QTcpServer,QSslSocket）来实现协议。
+（3）Shared Memory
+跨平台的共享内存类，QSharedMemory提供了访问操作系统共享内存的实现。它允许多线程和进程安全的访问共享内存段。另外，QSystemSemaphore可以对系统共享资源的访问以及进程通信进行控制。
+（4）Qt COmmunications Protocol (QCOP)
+QCopChannel类实现了客户进程通过有名channels传输消息的协议。它只能用于Qt for Embedded Linux，类似QtDBus，QCOP将Qt的信号和槽机制扩展到IPC层次，允许一个进程的信号可以连接另外一个进程的槽，但是与QtDBus不同的是QCOP不依赖第三方库。
+
+
+（*）Qt的插件系统（机制）
+=======================
+Qt提供两组API用于创建插件:
+高层的API：用于扩展Qt本身，比如自定义的数据库驱动，文本解码插件，风格插件等。
+低层的API：用于扩展应用程序本身。
+高层API实际建立在低层API之上。
+
+1.扩展Qt本身的高层插件
+编写一个用于扩展Qt本身的高层插件，主要做的就是：继承一个特定类型的插件基类、实现一些函数、再增加一个宏。
+编好的插件存放在特定的目录下，Qt会自动找到并加载。此方式创建的插件类型固定，每个类型对应一个$QTDIR/plugins目录下的子目录（也是Qt插件系统自动搜索的路径之一），插件就存放于其中。
+
+Qt加载插件的路径搜索规则，以及添加插件的方法，具体请参见文档。大致如下：
+将当前可执行程序路径作为插件搜索根目录，搜索特定类型的插件（如styles），可使用QCoreApplication::applicationDirPath()获得此根路径。
+将QLibraryInfo::location(QLibraryInfo::PluginsPath)获得的路径作为插件搜索根目录，搜索特定类型的插件（如styles），一般为：QTDIR/plugins。
+应用程序可使用 QCoreApplication::addLibraryPath()追加额外的搜索路径根目录。
+编写一个qt.conf来替换Qt内部硬编码后确定的路径，此文件存在于/qt/etc/qt.conf（根据系统有所不同），以及当前程序执行路径。
+另外，启动程序前，若指定 QT_PLUGIN_PATH，则使用此变量中的路径来搜索插件。
+
+每种类型的插件有其不同的实现规则，基本上是继承相应的插件基类（如QStylePlugin），实现一些特定的函数，最后用Q_EXPORT_PLUGIN2宏进行相应声明。
+
+一般使用插件的方式是将其直接包含并编译到应用程序中，或者将其编译成动态库，并链接。如果想要让插件可加载，那么就按照前面的规则，在搜索目录的相应位置为插件建立一个目录，并将插件拷贝进去。
+
+
+2.扩展应用程序本身的低层插件
+不仅是Qt本身，Qt应用程序也可通过插件扩展。应用程序通过QPluginLoader来检测和加载插件。应用程序的插件不仅限于Qt插件的那几种类型（如data base、style等），可以任意，较Qt的插件，灵活性更大。
+
+创建一个应用程序插件，大致包含下面的步骤：
+声明一个只包含纯虚函数接口的类，用于描述插件功能供插件实现。
+使用Q_DECLARE_INTERFACE()宏将上述接口通知给Qt的meta-object系统。
+在应用程序中使用QPluginLoader来加载插件。
+使用qobject_cast()检测插件是否实现了指定接口。
+
+编写插件包含如下步骤：
+声明一个插件类，继承自QObject和之前的接口类。
+使用Q_INTERFACES()宏将上述接口通知给Qt的meta-object系统。
+使用Q_EXPORT_PLUGIN2()宏将插件导出。
+使用合适的.pro文件编译插件。
+
+
+3.插件加载与检测
+高（主和次）版本Qt编译链接的插件，不能被低（主和次）版本Qt加载。
+例如： 4.5.3编译的插件，不能被4.5.0加载。
+
+低主版本号Qt编译链接的插件不能被高主版本号的Qt库加载。
+例如：
+Qt 4.3.1 不会加载Qt 3.3.1编译链接的插件。
+Qt 4.3.1 会加载Qt 4.3.0 and Qt 4.2.3编译链接的插件。
+
+Qt库和所有插件用一个联编关键字来联编。如果Qt库的和插件的联编关键字匹配则加载，否则不加载。
+
+编译插件来扩展应用程序时，需确保插件和应用程序用同样的配置。
+如果应用程序是release模式编译的，那么插件也要是release模式。
+若将Qt配置为debug和release模式都编译，但只在release模式下编译应用程序，就要确保你的插件也是在release模式下编译的。
+缺省的，若Qt的debug编译可用，插件就只在debug模式下编译。要强制插件用release模式编译，要在工程中添加：CONFIG += release
+
+这能确保插件兼容应用程序中所用的库版本。
+更多内容，参见官方文档。
+
+注：个人理解，Qt驱动一般就是指Qt插件，其实现根据底层被操作设备而不同，但对上提供统一的接口。
+
+
+（*）Qt内存管理机制
+=======================
+    所谓Qt内存管理机制，是一种半自动的垃圾回收机制，所有继承于QObject的类，并设置了parent(在构造时，或用setParent函数，或parent的addChild相关信息)，在parent被delete时，这个parent的相关所有child都会自动delete，不用用户手动处理。
+    程序通常最上层会有一个根的QOBJECT，就是放在setCentralWidget（）中的那个QOBJECT，这个QOBJECT在 new的时候不必指定它的父亲，因为这个语句将设定它的父亲为总的QAPPLICATION，当整个QAPPLICATION没有时它就自动清理，所以也无需清理(这里QT4和QT3有不同，QT3中用的是setmainwidget函数，但是这个函数不作为里面QOBJECT的父亲，所以QT3中这个顶层的QOBJECT要自行销毁）。
+    我们需要注意如下容易出错的三种情况：
+（1）child被单独释放
+    parent是用一个数给来保存childs的指针的，当一个child被销毁时，parent会知道的。child的析构函数会调用parent并把parent的指针数据中自己对数的值改为0，那么最后是0的指不管多少次都无所谓了。
+但是当一个QOBJECT正在接受事件队列中途就被你DELETE掉了，会出现问题，所以QT中建议不要直接DELETE掉一个 QOBJECT，如果一定要这样做，要使用QOBJECT的deleteLater()函数，它会让所有事件都发送完一切处理好后马上清除这片内存，而且就算调用多次的deleteLater也不会有问题（具体可查看deleteLater在api文档中的解释）。
+
+（2）非new出来的child的释放
+    parent不区别它的child是不是new出来的，只要是它的child，它在销毁时就直接delete。因此如下代码是有错误的：
+    {
+     QObject*parent=new QObject(0);
+     QObject child(parent);
+     delete parent;
+    }
+    上面代码中delete parent时，会对child进行delete，而child不是new的，导致出错。在正确的QT开发中，顶级的patent一般是在main函数中，而patent生命周期一般都会比child长，而上述代码中，parent的生命周期比child短。
+
+（3）在parent范围外持有childs的指针
+    在parent释放后，其child不知道自己被delete了，此时child的指针就是野指针。Qt不建议在一个parent的范围之外持有对childs的指针，这样就不会出现前面那样野指针的问题了。但是非要在parent外持有child的指针，那么Qt推荐使用QPointer，QPointer相当于一个智能指针，不用智能指针前的代码如下：
+    {
+     QObject*parent=new QObject(0);
+     QObject*child=new QObject(parent);
+     delete parent;
+     child->...
+    }
+    这里第4步"child->"会出错，因为其parent已经在前面"delete parent"时也将它释放了。应该这样：
+    {
+     QObject*parent=new QObject(0);
+     QObject*child=new QObject(parent);
+     QPointer<QObject>p=child;
+     delete parent;
+     if(p.isNull()){
+         p->...
+     }
+    }
+    这里使用QPointer，可以判断出child是否被释放。
+
+
+（*）Qt的Model/View编程模式
+=======================
+    Qt 4使用model/view结构来管理数据与表示层的关系。这种结构将显示与数据分离，给开发人员带来更大的弹性来定制数据项的表示。Model-View-Controller(MVC)， 是从Smalltalk发展而来的一种设计模式，常被用于构建用户界面。MVC 由三种对象组成。Model是应用程序对象，View是它的屏幕表示，Controller定义了用户界面如何对用户输入进行响应。在MVC之前，用户界面设计倾向于三者揉合在一起，MVC对它们进行了解耦，提高了灵活性与重用性。假如把view与controller结合在一起，结果就是model/view结构。这个结构依然是把数据存储与数据表示进行了分离，它与MVC都基于同样的思想，但它更简单一些。这种分离使得在几个不同的view上显示同一个数据成为可能，也可以重新实现新的view,而不必改变底层的数据结构。为了更灵活的对用户输入进行处理，引入了delegate这个概念。它的好处是，数据项的渲染与编程可以进行定制。
+    许多便利类都源于标准的view类，它们方便了那些使用Qt中基于项的view与table类，它们不应该被子类化， 它们只是为Qt 3的等价类提供一个熟悉的接口。QListWidget,QTreeWidget,QTableWidget,它们提供了如Qt 3中的QListBox, QlistView,QTable相似的行为。这些类比View类缺少灵活性，不能用于任意的models,推介使用model/view的方法处理数据。
+    Qt采用Model/View的方式，主要相关类可以被分成上面所提到的三组：models,views,delegates。model，与数据源通讯，并提供接口给结构中的别的组件使用。通讯的性质依赖于数据源的种类与model实现的方式； view，从model获取model indexes,通过model indexes，view可以从model数据源中获取数据并组织； delegate，会在标准的views中对数据项进行进一步渲染或编辑，当某个数据项被选中时，delegate通过model indexes与model直接进行交流。models,views,delegates之间通过信号，槽机制来进行通讯。
+
+1.Models
+    所有的item models都基于QAbstractItemModel类，这个类定义了用于views和delegates访问数据的接口。数据本身不必存储在model,数据可被置于一个数据结构或另外的类，文件，数据库，或别的程序组件中。QT提供了一些现成的models用于处理数据项：
+QStringListModel 用于存储简单的QString列表。
+QStandardItemModel 一个多用途的model，可用于表示list,table,tree views所需要的各种不同的数据结构，这个数据每项都可以包含任意数据。
+QDirModel  提供本地文件系统中的文件与目录信息。
+QSqlQueryModel, QSqlTableModel,QSqlRelationTableModel用来访问数据库。
+    假如这些标准Model不满足需要，我们可以子类化QAbstractItemModel,QAbstractListModel或是QAbstractTableModel来定制自己所需的数据。
+
+（1）ModelIndex
+    通过model index，可以引用model中的数据项，而不必关注底层的数据结构。Views和delegates都使用indexes来访问数据项，然后再显示出来。这使得数据存储与数据访问分开，只有model需要了解如何获取数据，model index需要关注关于model的三个属性：行数，列数，父项的model index。另外，有时model会重新组织内部的数据结构，所以保存临时的model indexes可能会失效，所以这时应该创建一个长期的model index保存，这个引用会保持更新。临时的model indexes由QModelIndex提供，而具有持久能力的model indexes则由QPersistentModelIndex提供。
+
+（2）Model role
+    model中的项可以作为各种角色来使用，这意味着在不同的环境下，Model会提供不同的数据(给View或Delegate)。例如Qt::DisplayRole用于访问一个字符串，设置此角色后，数据项会作为文本在view中显示。标准的角色在Qt::ItemDataRole中定义。我们可以通过指定model index与角色来获取我们需要的数据。
+一个通过Model Index 和role访问Model项的例子：
+QDirModel *model = new QDirModel;
+QModelIndex parentIndex = model->index(QDir::currentPath());
+int numRows = model->rowCount(parentIndex);//获取model的尺寸
+for (int row = 0; row < numRows; ++row)
+{
+    QModelIndex index = model->index(row, 0, parentIndex);//树形目录结构需要row和parentIndex信息定位特定数据项
+    tring text = model->data(index, Qt::DisplayRole).toString();//指定role为Qt::DisplayRole，可获取相应字符串数据。
+    // Display the text in a widget.
+}
+
+（3）自己设计Model的例子：
+假设我们实现一个自己的model, 用来显示字符串列表。
+类声明如下：
+class MyStringListModel : public QAbstractListModel
+{
+    Q_OBJECT
+
+    public:
+        MyStringListModel(const QStringList &strings, QObject *parent = 0): QAbstractListModel(parent), stringList(strings) {}
+        int rowCount(const QModelIndex &parent = QModelIndex()) const;
+        QVariant data(const QModelIndex &index, int role) const;
+        QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+        Qt::ItemFlags flags(const QModelIndex &index) const;
+        bool setData(const QModelIndex &index,const QVariant &value, int role);
+
+    private:
+        QStringList stringList;
+};
+    除了构造函数，我们仅需要实现两个函数：rowCount()返回model中的行数，data()返回与特定model index对应的数据项。具有良好行为的model也会实现headerData()，它返回tree和table views需要的，在标题中显示的数据。因为这是一个非层次结构的model,我们不必考虑父子关系。假如model具有层次结构，我们也应该实现index()与parent()函数。
+
+每个函数实现：
+int MyStringListModel::rowCount(const QModelIndex &parent) const
+{//数据的长度即stringList长度
+    return stringList.count();
+}
+
+QVariant MyStringListModel::data(const QModelIndex &index, int role) const
+{//获取数据，这里只有一个角色：Qt::DisplayRole
+    if (!index.isValid())
+        return QVariant();
+
+    if (index.row() >= stringList.size())
+        return QVariant();
+
+    if (role == Qt::DisplayRole)
+        return stringList.at(index.row());
+    else
+        return QVariant();
+}
+
+QVariant MyStringListModel::headerData(int section, Qt::Orientation orientation, int role) const
+{//头部的显示信息增加界面友好性
+    if (role != Qt::DisplayRole)
+        return QVariant();
+
+    if (orientation == Qt::Horizontal)
+        return QString("Column %1").arg(section);
+    else
+        return QString("Row %1").arg(section);
+}
+    至此，我们创建的Model可以表示一个字符串列表，供Views来显示。如果想要修改其内容，需要再添加其它函数实现(如flags, setData)，并借助Delegates来实现和用户的特定交互方式（editline,还是combo box等），可参见后面。
+
+2.Views
+    不同的view都完整实现了各自的功能：QListView把Model的数据显示为一个列表，QTableView把Model的数据以table的形式表现，QTreeView 用具有层次结构的列表来显示model中的数据。这些类都基于QAbstractItemView抽象基类，尽管这些类都是现成的，完整的进行了实现，但它们都可以用于子类化以便满足定制需求。
+    在model/view架构中，view从model中获得数据项然后显示给用户。数据显示的方式不必与model提供的表示方式相同，可以与底层存储数据项的数据结构完全不同。这种内容与显式的分离是通过由QAbstractItemModel提供的标准模型接口，由QAsbstractItemview提供的标准视图接口共同实现的。
+    普遍使用model index来表示数据项。view负责管理从model中读取的数据的外观布局。它们自己可以去渲染每个数据项，也可以利用delegate来既处理渲染又进行编辑。
+    除了显示数据，views也处理数据项的导航，参与有关于数据项选择的部分功能。view也实现一些基本的用户接口特性，如上下文菜单与拖拽功能。view也为数据项提供了缺省的编程功能，也可搭配delegate实现更为特殊的定制编辑的需求。一个view创建时必不需要model,但在它能显示一些真正有用的信息之前，必须提供一个model。view通过使用selections来跟踪用户选择的数据项。每个view可以维护单独使用的selections，也可以在多个views之间共享(例如在QListView中选择一项，同时也在使用同一个selections同一model的QTreeView中显示出来)。
+    有些views,如QTableView和QTreeView,除数据项之外也可显示标题(Headers)，标题部分通过一个view来实现，QHeaderView。标题与view一样总是从相同的model中获取数据。从 model中获取数据的函数是QabstractItemModel::headerDate()，一般总是以表单的形式中显示标题信息。可以从QHeaderView子类化，以实现更为复杂的定制化需求。
+
+（1）使用model
+a.前面的例子中创建过一个string list model,这里给它设置一些数据，再创建一个view把model中的内容展示出来：
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+
+    // Unindented for quoting purposes:
+    QStringList numbers;
+    numbers << "One" << "Two" << "Three" << "Four" << "Five";
+
+    QAbstractItemModel *model = new StringListModel(numbers);
+    //要注意的是，这里把StringListModel作为一个QAbstractItemModel来使用。这样我们就可以
+    //使用model中的抽象接口，而且如果将来我们用别的model代替了当前这个model,这些代码也会照样工作。
+    //QListView提供的列表视图足以满足当前这个model的需要了。
+    QListView *view = new QListView;
+    view->setModel(model);
+    view->show();
+    return app.exec();
+}
+view会渲染model中的内容，通过model的接口来访问它的数据。当用户试图编辑数据项时，view会使用缺省的delegate来提供一个编辑构件。
+
+b.一个model,多个views
+为多个views提供相同的model是非常简单的事情，只要为每个view设置相同的model。
+QTableView *firstTableView = new QTableView;
+QTableView *secondTableView = new QTableView;
+
+firstTableView->setModel(model);
+secondTableView->setModel(model);
+在model/view架构中信号、槽机制的使用意味着model中发生的改变会传递中联结的所有view中，这保证了
+不管我们使用哪个view，访问的都是同样的一份数据。
+
+c.多个views之间共享选择
+接着上边的例子，我们可以这样：
+secondTableView->setSelectionModel(firstTableView->selectionModel());
+现在所有views都在同样的选择模型上操作，数据与选择项都保持同步，在firstTableView上选择的项，在secondTableView上也会高亮出来。
+
+（2）使用选择项
+另外，在views中还可使用选择项，设定选择哪些数据，以及更新和读取选择的状态等。这里省略，可参见QItemSelection。
+
+3.Delegates
+    与MVC模式不同，model/view结构没有用于与用户交互的完全独立的组件。一般来讲， view负责把数据展示给用户，也处理用户的输入。为了获得更多的灵活性，交互通过delegagte执行。
+    Delegate既提供输入功能又负责渲染view中的每个数据项。 控制delegates的标准接口在QAbstractItemDelegate类中定义，Delegates通过实现paint()和sizeHint()以达到渲染内容的目的。然而，简单的基于widget的delegates,可以从QItemDelegate子类化，而不是QAbstractItemDelegate,这样可以使用它提供的上述函数的缺省实现。delegate可以使用widget来处理编辑过程，也可以直接对事件进行处理。
+    Qt提供的标准views都使用QItemDelegate的实例来提供编辑功能。它以普通的风格来为每个标准view渲染数据项。这些标准的views包括：QListView,QTableView,QTreeView。所有标准的角色都通过标准views包含的缺省delegate进行处理。一个view使用的delegate可以用itemDelegate()函数取得,而setItemDelegate() 函数可以安装一个定制delegate。
+
+实现自定制的delegate
+    在前面，我们已经建立了一个基于字符串的QStringListModel,我们这里用自己定义的delegate来控制每一项的编辑和渲染。我们建立了一个list view来显示model的内容，用我们定制的delegate来编辑和显示，这个delegate使用QLineEdit来提供编辑和显示的功能（当然我们也可用自己定义的窗口组件，这里使用编辑器有点误导人，好像delegate只能编辑似的，实际我们可以将delegate看作一个任意的窗口部件，其输入输出就是model中的数据，而views实际就是对delegate以列表，树形结构等方式组织起来，更进一步用什么方式展示数据，由delegate决定）。
+
+类声明
+    我们继承QItemDelegate，这样可以利用它缺省实现的显示功能。当然我们必需提供函数来管理用于编辑的widget:
+class LineEditDelegate : public QItemDelegate
+{
+    Q_OBJECT
+
+    public:
+        LineEditDelegate(QObject *parent = 0);
+        QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;//提供编辑器
+        void setEditorData(QWidget *editor, const QModelIndex &index) const;//用编辑器渲染model的data
+        void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;//向model提交修改的data。
+        void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;//更新编辑器几何布局
+};
+    需要注意的是,当一个delegate创建时，不需要安装一个widget，只有在真正需要时才创建这个用于编辑的widget。
+
+类实现
+    当List view需要提供一个编辑器时，它要求delegate提供一个widget编辑器，修改当前的数据项。createEditor()函数用于创建那个编辑器。
+QWidget *LineEditDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &/* option */, const QModelIndex &/* index */) const
+{
+    QLineEdit *editor = new QLineEdit(parent);
+    return editor;
+}
+    我们不需要跟踪这个widget的指针，因为view会在不需要时销毁这个widget。我们也可以根据不同的model index来创建不同的编辑器，比如，我们有一列整数，一列字符串，我们可以根据哪种列被编辑来创建一个QSpinBox或是QLineEdit。
+
+    delegate必需能够把model中的数据拷贝到编辑器中，以起到渲染的作用。这需要我们实现setEditorData()函数。
+void LineEditDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+{
+    QString text = index.model()->data(index, Qt::DisplayRole).toString();
+
+    QLineEdit *line = static_cast<QLineEdit*>(editor);
+    line->setText(text);
+}
+    这样，数据便以QLineEdit的方式被渲染出来。
+
+    delegate必需能够把在编辑器中修改好的数据提交给model。这需要我们实现另外一个函数setModelData()。
+void LineEditDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
+{
+    QLineEdit *line = static_cast<QLineEdit*>(editor);
+    QString text = line->text();
+    model->setData(index, text);
+}
+    标准的QItemDelegate类当它完成编辑时会发射closeEditor()信号来通知view。view保证编辑器widget关闭与销毁。本例中我们只提供简单的编辑功能，因此不需要发送个信号。
+
+    delegate负责管理编辑器的几何布局。这些几何布局信息在编辑创建时或view的尺寸位置发生改变时，都应当被提供。view通过一个view option可以提供这些必要的信息。
+void LineEditDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &/* index */) const
+{
+    editor->setGeometry(option.rect);
+}
+
+
+编辑提示
+    编辑完成后，delegate会给别的组件提供有关于编辑处理结果的提示，也提供用于后续编辑操作的一些提示。这可以通过发射带有某种hint的closeEditor()信号完成。这些信号会被安装在line edit上的缺省的QItemDelegate事件过滤器捕获。对这个缺省的事件过滤来讲，当用户按下回车键，delegate会对model中的数据进行提交，并关闭spin box。 我们可以安装自己的事件过滤器以迎合我们的需要，例如，我们可以发射带有EditNextItem hint的 closeEditor()信号来实现自动开始编辑view中的下一项。
+
+继续完善model以支持delegate
+    delegate会在创建编辑器之前检查数据项是否是可编辑的。model必须得让delegate知道它的数据项是可编辑的。这可以通过为每一个数据项返回一个正确的标记得到，在本例中，我们假设所有的数据项都是可编辑可选择的。所以需要为MyStringListModel实现flags函数。
+Qt::ItemFlags MyStringListModel::flags(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return Qt::ItemIsEnabled;
+
+    return QAbstractItemModel::flags(index) | Qt::ItemIsEditable;
+}
+
+    model不必知道delegate执行怎样实际的编辑处理过程，但需提供给delegate一个方法，delegate会使用它对model中的数据进行设置。这个特殊的函数就是setData()。
+bool MyStringListModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (index.isValid() && role == Qt::EditRole) {
+
+        stringList.replace(index.row(), value.toString());
+        emit dataChanged(index, index);
+        return true;
+    }
+    return false;
+}
+    这里当数据被设置后，model必须得让views知道一些数据发生了变化，这里通过发射一个dataChanged() 信号实现。因为只有一个数据项发生了变化，因此在信号中说明的变化范围只限于一个model index。
+
+    另外，还可实现插入行和删除行的功能，需要实现两个函数，并在view处做相应处理，这里不细述。
+bool MyStringListModel::insertRows(int position, int rows, const QModelIndex &parent)
+{//beginInsertRows()通知其他组件行数将会改变。endInsertRows()对操作进行确认与通知。返回true表示成功。
+    beginInsertRows(QModelIndex(), position, position+rows-1);
+
+    for (int row = 0; row < rows; ++row) {
+        stringList.insert(position, "");
+    }
+
+    endInsertRows();
+    return true;
+}
+
+bool MyStringListModel::removeRows(int position, int rows, const QModelIndex &parent)
+{
+    beginRemoveRows(QModelIndex(), position, position+rows-1);
+
+    for (int row = 0; row < rows; ++row) {
+        stringList.removeAt(position);
+    }
+
+    endRemoveRows();
+    return true;
+}
+
+
+（*）绘制系统
+=======================
+    Qt的绘制系统主要由三部分组成，  QPainter, QPaintDevice, QPaintEngine。QPainter 是一个绘制接口类，提供绘制各种面向用户的命令;QPaintDevice 是对被QPainter绘制的设备（目的地）进行抽象形成的2维空间，相当于画布;而QPaintEngine 是介于两者之间的基本绘制命令的具体实现，被两者在内部调用，它根据被绘制的设备的不同而不同。 由于这个结构，我们绘制时就不用关心具体的设备（QPaintDevice），直接和QPainter打交道即可。注意对于Windows平台来说，当绘制目标是一个widget的时候，QPainter只能在 paintEvent() 里面或者由paintEvent()导致调用的函数里面使用。另外，Qt提供了对OpenGL的支持，通过和QWidget类似的方式，使用OpenGL的功能。
+
+1.Matrix, Coordinate, View port & window
+    默认情况下，QPainter 使用的是 当前 device 的坐标系，坐标原点是左上角，x轴向右递增，y轴向下递增，坐标单位，对于基于像素的设备是1个像素，对于打印机是1/72英寸。但是QPainter 对于坐标系变换提供了很好的支持，主要有如下的一些坐标系变换：旋转， 缩放， 平移， shearing， 用 scale() 来缩放作响， rotate（） 用来对坐标系进行顺时针旋转， translate() 对坐标系执行平移操作。也可以通过函数 shear() 对坐标系执行扭曲。类似对矩阵执行雅克比切变，让 坐标系的 x 和 y 不再是正交的向量。这里提到的变换都是作用在 worldTransform()的矩阵上。 还有一个矩阵 deviceTransform 用来把逻辑坐标变换到设备的坐标。
+
+    当用QPainter执行绘制的时候，我们指定的顶点坐标都是逻辑坐标，这个逻辑坐标最终会被转换成设备的物理坐标，从逻辑坐标到物理坐标的转换，是通过矩阵 combinedTransform()执行的，这个矩阵，结合了 viewport() ， window(), 和 worldTransform()。 其中 viewport()代表的是物理坐标系中的任意的一个矩形区域，而window()是以逻辑坐标的形式描述viewport()指定的同一个矩形。其中worldTransform() 就等于变换矩阵。
+
+2.绘制内容
+    对于QPainter来说，内部有一个状态堆栈，任何时候都可以通过调用 save() 和 restore() 对QPainter的内部状态（如旋转角度等）执行 进栈保存和压栈还原的操作。
+
+    QPainter 提供了大部分基本二维几何元的绘制命令，可以绘制如：QPoint, QLine, QRect, QRegion, QPolygon等表示的图形，以及一些复杂的图形可通过QPainterPath来进行。QPainterPath实际是一个各种基本绘制操作的容器，将复杂的绘制操作存于QPainterPath中，然后通过 QPainter::drawPath()一次性绘制出来。
+    另外，QPainter还可以绘制文字，以及pixmap（对图片的像素表示，不能直接显示需要转成相应的图片格式显示）。
+
+3.填充 
+    填充使用QBrush来完成，可以指定填充的颜色和风格。填充的颜色用QColor表示，风格 Qt::BrushStyle 枚举列出。还可通过 QGradient 来自行指定填充的梯度，以及通过QPixmap自行指定填充纹理。
+
+4.创建绘制设备
+QPaintDevice是绘制设备的基类。QPainter可以在任何QPaintDevice子类对象上进行绘制。目前Qt实现的QPaintDevice包括：QWidget, QImage, QPixmap, QGLWidget, QGLPixelBuffer, QPicture 和 QPrinter和子类等。
+如果添加自己的绘制后端，我们需要继承QPaintDevice，重新实现虚函数： QPaintDevice::paintEngine()以确定QPaintDevice使用哪个engine。我们还需继承QPaintEngine来实现这个engine，以便能够在添加的设备上进行绘制。
+
+
+5.读写图片文件
+    Qt提供了四种类用来处理图片数据:QImage, QPixmap, QBitmap以及QPicture。QImage对I/O的操作进行了优化，用于直接对像素进行访问和操作。QPixmap对显示图片到屏幕上进行了优化。QBitmap是QPixmap的子类，保证了色深为1。QPicture是一个绘制设备，用来记录和回放QPainter的操作。
+   对图片操作最常用的类就是QImage和QPixmap。可以通过其构造函数，或者load、save函数。另外Qt也提供了QImageReader和 QImageWriter可以对图片处理提供更多更方便的控制。
+   QMovie用来显示动画，其内部使用了QImageReader。
+   QImageWriter和QImageReader依赖QImageIOHandler，QImageIOHandler为Qt提供了操作所有格式图片的一些通用接口。QImageWriter和QImageReader内部就使用QImageIOHandler为Qt添加不同图片格式的支持。
+   Qt里支持了一些格式的图片，可通过 QImageReader::supportedImageFormats() 和 QImageWriter::supportedImageFormats()来查询。若为Qt添加新图片格式的支持，通过插件实现。继承QImageIOHandler以及创建用于创建handler的QImageIOPlugin 对象后，就可以用QImageWriter和QImageReader来操作这个新格式的图片了。
+   另外Qt还支持静态SVG图片，见QtSvg相关文档。
+    
+    
+6.风格化 
+    Qt的内建控件一般都使用QStyle来进行绘制。QStyle是风格的基类。每种风格都代表一种gui的显示特性，例如（windows下的，linux下的），如果定义自己显示个性的风格，那么可以通过插件机制来实现。
+    大多数函数绘制风格元素需要四个参数：
+    一个表示哪种图形元素的枚举。
+    一个QStyleOption描述怎样以及向哪来提交元素。
+    一个QPainter对象用于绘制元素。
+    一个QWidget对象，绘制的动作将在其上进行（可选）。
+    QStylePainter 继承自QPainter，可以方便地利用QStyle进行风格绘制。
+
+
+7.选择绘制后端
+Qt4.5开始，我们可以选择替换用于widgets,pixmaps,和无屏双缓冲的engines和devices。各个系统默认的后端是：
+Windows系统：Software Rasterizer
+X11系统：X11
+Mac OS X系统：CoreGraphics
+Embedded系统：Software Rasterizer
+我们可以通过启动程序时指定"-graphicssystem raster"来告诉Qt使用rasterizer软件作为程序的后端。rasterizer软件对所有的平台都支持的很好。如：
+$analogclock -graphicssystem raster
+
+也可以使用"-graphicssystem opengl"，来指定使用OpenGL绘制。当前，这个引擎处于实验阶段，可能不能正确绘制所有内容。
+
+Qt也支持"-graphicssystem raster|opengl"配置，这样所有的应用程序将会使用相应的图形系统。
+
+
+
+作者：QuietHeart
+Email：quiet_heart000@126.com
+日期：2013年10月15日

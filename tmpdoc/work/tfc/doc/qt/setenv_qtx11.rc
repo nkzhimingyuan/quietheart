@@ -1,0 +1,6 @@
+#Used for QtX11 environment.
+QTDIR=/usr/local/Trolltech/QtX11-4.5.3
+PATH=$QTDIR/bin:${PATH//$QTDIR\/bin:/}
+MANPATH=$QTDIR/doc/man:${MANPATH//$QTDIR\/doc\/man:/}
+LD_LIBRARY_PATH=$QTDIR/lib:${LD_LIBRARY_PATH//$QTDIR\/lib:/}
+export QTEDIR PATH LD_LIBRARY_PATH

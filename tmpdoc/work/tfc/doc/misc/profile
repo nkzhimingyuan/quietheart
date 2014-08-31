@@ -1,0 +1,49 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+
+if [ "$PS1" ]; then
+  if [ "$BASH" ]; then
+    PS1='\u@\h:\w\$ '
+    if [ -f /etc/bash.bashrc ]; then
+	. /etc/bash.bashrc
+    fi
+  else
+    if [ "`id -u`" -eq 0 ]; then
+      PS1='# '
+    else
+      PS1='$ '
+    fi
+  fi
+fi
+PATH="/usr/local/montavista/pro/devkit/arm/v5t_le/bin:/usr/local/montavista/pro/bin:/usr/local/montavista/common/bin:$PATH"
+PKG_CONFIG_PATH=/usr/lib:/usr/lib/pkgconfig
+export PKG_CONFIG_PATH
+MVTOOL_DIR="/usr/local/montavista/pro/devkit/arm/v5t_le"
+DVSDK_BASE_DIR="/usr/local/dvsdk_ipnctools"
+FILESYS_BASE_DIR="/var/lib/jenkins/jobs/ipnc/workspace/output"
+TFTP_HOME="/var/lib/jenkins/jobs/ipnc/workspace/output"
+KERNELDIR="/usr/local//davinci/dm36x/mvl-kernel"
+
+export MVTOOL_DIR
+export DVSDK_BASE_DIR
+export FILESYS_BASE_DIR
+export TFTP_HOME
+export KERNELDIR
+
+umask 022
+
+# 2013年 03月 20日 星期三 09:16:37 CST
+# Hisilicon Linux, Cross-Toolchain PATH
+export PATH="/opt/hisi-linux/x86-arm/arm-hisiv200-linux/target/bin:$PATH" 
+# 
+
+#export LANG=UTF-8

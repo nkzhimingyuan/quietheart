@@ -1,0 +1,425 @@
+
+三、ipv6地址配置原理简介
+==========================
+主机和路由器的ipv6地址
+主机需要识别如下地址（哪些可选？哪些必选？）
+（1）每一个接口的本链路地址（必选，不经过路由器即可和同链路网络通信，一般用于邻居发现，及无状态自动配置IP地址，路由器通告发送等场合）
+（2）所有分配的单播地址（可选，与其它主机互相访问）
+（3）环回地址（必选，发送只能发给自己的环回数据包）
+（4）所有节点多播地址（必选，保证节点能收到其它节点发送的邻居公告或路由公告表明是否地址冲突等）
+（5）与每个单播和任播地址对应的被请求节点多播地址(必选，邻居发现以及地址唯一性检测时的多播包(RS)地址)
+（6）该节点所属的任何其他组的多播地址（）
+
+除上述地址外，路由器还需要识别如下地址：
+（1）每个路由器接口的子网任播地址
+（2）其他的所有配置的任播地址
+（3）所有路由器多播地址
+
+一个接口可以有多个IPV6地址。多个地址分配给同一接口，使得在更换地址的过渡时期,节点能使新地址和正在淡出的旧地址（子网前缀）可以同时工作。
+ipv6地址配置有手动配置和自动配置两种方式。
+
+1.手动配置
+    手工配置主机IP地址是一件非常繁琐的事情，尤其当主机IP地址需要经常改动的时候，管理分配给主机的静态IP地址是一项艰难的任务。一般用于服务器和重要的网络设备。Linux下可使用"ifconfig"、"route"或"ip"等命令对其进行配置，后面会专门讲述如何手动配置ipv6的地址。
+
+2.自动配置
+    IPv6协议支持地址自动配置，这是一种即插即用的机制，在没有任何人工干预的情况下，IPv6网络接口可以获得链路局部地址、站点局部地址和全局地址等，并且可以防止地址重复。IPv6支持“无状态地址自动配置”和“有状态地址自动配置”两种方式。无状态自动配置一般默认支持，后面会讲述如何使用dhcp v6对IP v6地址进行有状态自动配置。
+
+（1）无状态自动配置：
+　　无状态地址自动配置在具有组播能力的接口被启用时（例如刚启动系统）开始进行，此时需要配置地址的网络接口先使用邻居发现机制获得一个链路本地地址。网络接口得到这个链路本地地址之后，再发送路由器请求（RS），接受路由器响应的路由器通告以获得地址网络前缀，网络前缀结合接口标识得到一个全局单播地址。如果没有路由器，主机可以只生成链路本地地址。链路本地地址只能用于和同一链路上的节点进行通信。
+具体过程如下:
+    假设路由器r1，待配置的主机host1。r1已经在与host1互联的接口上配置好了一个可聚集全球单播地址。
+    a.host1为自己创建链路本地地址（该操作不要求链路上有路由器，通过本地链路前缀 FE80::0 和接口标识符组合而成）。
+    b.host1检验地址在链路上是否唯一，是则使用本地链路地址并且继续，否则需要人工干预（该操作不要求链路上有路由器）。
+    获取到链路本地地址之后，host1就具备了在 IP 层上与邻居节点通信的能力。接下来要讲的自动配置步骤只适用于主机不适合路由器。
+    下一个阶段，如果链路上有路由器，host1则根据路由器通告信息确定是应通过无状态机制，还是有状态机制实现自动配置；如果无路由器，则进行有状态自动配置。
+    对无状态自动配置，继续如下过程：
+    d.host1通过r1的路由器通告（RA）发现这条链路上的网络前缀（prefix）。
+    e.host1生成一个接口ID（interface id），并添加在prefix的后面。
+    f.host1通过重复地址检测机制（DAD）判断地址是否唯一，如果唯一则使用此地址，否则需要手动干预。
+    为加速自动配置过程,主机一边产生本地链路地址(并验证它的唯一性),一边等待路由通告。地址冲突检测可通过配置接口来激活或省略。
+
+    IPV6无状态地址配置协议是广泛采用的地址配置方式，配置该协议的主机只需相邻路由开启路由公告功能。由于有了无状态自动配置机制，一个企业更换sp的时候就不需要手动在每台pc上更换地址，而只需将路由器每个接口的prefix改掉。由于无状态地址配置中，路由器不保存ipv6主机的具体地址信息，所以可管理性差，而且也不能获取DNS服务器的地址和域名等信息，同时，对ISP服务商来说也没有指明给路由器分配的IP前缀的规范，只能手动为路由器和交换机配置ipv6地址。我们可以通过结合DHCP v6的无状态配置方式，来改善其缺点（见后面）。
+
+（2）有状态自动配置(DHCP V6)：
+    有状态地址自动配置的方式，与IPv4的DHCP(动态主机配置协议)一样，需要一个DHCP服务器，通过 客户机/服务器 模式从DHCP服务器处得到地址配置的信息。有状态自动配置和无状态自动配置可以一起使用。
+
+DHCPv6典型组网中包括以下三种角色：
+    DHCPv6客户端：动态获取IPv6地址、IPv6前缀或其他网络配置参数的设备。
+    DHCPv6服务器：负责为DHCPv6客户端分配IPv6地址、IPv6前缀和其他网络配置参数的设备。需要注意的是：分配IPv6前缀后，DHCPv6客户端（一般是路由器）便能向所在网络发送包含该前缀信息的RA消息，以便网络内的主机根据该前缀自动配置IPv6地址。
+    DHCPv6中继：DHCPv6客户端通过本地链路范围的组播地址与DHCPv6服务器通信，以获取IPv6地址和其他网络配置参数。如果服务器和客户端不在同一个链路范围内，则需要通过DHCPv6中继来转发报文，这样可以避免在每个链路范围内都部署DHCPv6服务器，既节省了成本，又便于进行集中管理。
+
+（2.1）DHCPv6地址/前缀分配过程
+    DHCPv6服务器为客户端分配地址/前缀的过程分为两类：交互四个消息的分配过程，和交互两个消息的快速分配过程。
+
+    交互四个消息的分配过程：
+    a.Solicit，DHCPv6客户端发送该消息，请求DHCPv6服务器为其分配IPv6地址/前缀和网络配置参数。
+    b.Advertise，如果Solicit消息中无Rapid Commit选项，或有Rapid Commit选项，但服务器不支持快速分配过程，则DHCPv6服务器回复该消息，通知客户端可以为其分配的地址/前缀和网络配置参数。
+    c.Request，如果DHCPv6客户端接收到多个服务器回复的Advertise消息，则根据消息接收的先后顺序、服务器优先级等，选择其中一台服务器，并向该服务器发送Request消息，请求服务器确认为其分配地址/前缀和网络配置参数。
+    d.Reply，DHCPv6服务器回复该消息，确认将地址/前缀和网络配置参数分配给客户端使用。
+
+    交互两个消息的快速分配过程:
+    a.DHCPv6客户端在发送的Solicit消息中携带Rapid Commit选项，标识客户端希望服务器能够快速为其分配地址/前缀和网络配置参数；
+    b.如果DHCPv6服务器支持快速分配过程，则直接返回Reply消息，为客户端分配IPv6地址/前缀和其他网络配置参数。如果DHCPv6服务器不支持快速分配过程，则采用交互四个消息的分配过程为客户端分配IPv6地址/前缀和其他网络配置参数。
+
+（2.2）地址/前缀租约更新过程
+    DHCPv6服务器分配给客户端的IPv6地址/前缀具有一定的租借期限。租借期限由有效生命期（Valid Lifetime）决定。地址/前缀的租借时间到达有效生命期后，DHCPv6客户端不能再使用该地址/前缀。在有效生命期到达之前，如果DHCPv6客户端希望继续使用该地址/前缀，则需要更新地址/前缀租约。
+    具体如下：
+    a.地址/前缀租借时间到达时间T1（推荐值为首选生命期Preferred Lifetime的一半）时，DHCPv6客户端会向为它分配地址/前缀的DHCPv6服务器单播发送Renew报文，以进行地址/前缀租约的更新。
+    b.如果客户端可以继续使用该地址/前缀，则DHCPv6服务器回应续约成功的Reply报文，通知DHCPv6客户端已经成功更新地址/前缀租约；如果该地址/前缀不可以再分配给该客户端，则DHCPv6服务器回应续约失败的Reply报文，通知客户端不能获得新的租约。
+    c.如果在T1时发送Renew请求更新租约，但是没有收到DHCPv6服务器的回应报文，则DHCPv6客户端会在T2（推荐值为首选生命期的0.8倍）时，向所有DHCPv6服务器组播发送Rebind报文请求更新租约。
+    d.如果客户端可以继续使用该地址/前缀，则DHCPv6服务器回应续约成功的Reply报文，通知DHCPv6客户端已经成功更新地址/前缀租约；如果该地址/前缀不可以再分配给该客户端，则DHCPv6服务器回应续约失败的Reply报文，通知客户端不能获得新的租约。
+    e.如果到达有效生命期后，DHCPv6客户端仍没有收到服务器的应答报文，客户端停止使用该地址/前缀。
+
+（2.3）DHCPv6中继工作过程
+    通过DHCPv6中继动态获取IPv6地址/前缀和其他网络配置参数的过程中，DHCPv6客户端与DHCPv6服务器的处理方式与不通过DHCPv6中继时的处理方式基本相同。
+    具体如下：
+    a.DHCPv6客户端向所有DHCPv6服务器和中继的组播地址FF02::1:2发送请求；
+    b.DHCPv6中继接收到请求后，将其封装在Relay-forward报文的中继消息选项（Relay Message Option）中，并送给DHCPv6服务器；
+    c.DHCPv6服务器从Relay-forward报文中解析出客户端的请求，为客户端选取IPv6地址和其他参数，构造应答消息，将应答消息封装在Relay-reply报文的中继消息选项中，并发送给DHCPv6中继；
+    c.DHCPv6中继从Relay-reply报文中解析出服务器的应答，转发给DHCPv6客户端；
+    e.DHCPv6客户端根据DHCPv6服务器分配的IPv6地址/前缀和其他参数进行网络配置。
+
+    在有状态的dhcpv6地址自动配置中，最终的服务器能把ipv6地址和客户关系记录在案，方便了管理；并且，除了给主机提供一个完整的ipv6地址外，还可以对主机的DNS服务器的地址和域名等其它信息进行自动配置；另外DHCP v6还提供了前缀代理扩展功能，可以自动为下游路由器分配网络前缀，减少了手动部署网络的困难。
+
+（2.4）DHCPv6无状态配置过程
+    DHCP V6还提供了无状态DHCP V6服务，即只对DNS服务器的地址和域名等其它信息进行自动配置，而不分配IPV6地址，IP v6地址仍由路由通告方式获取。DHCPv6客户端通过地址无状态自动配置功能成功获取IPv6地址后，如果接收到的RA（Router Advertisement，路由器通告）报文中M标志位（被管理地址配置标志位）为0、O标志位（其他配置标志位）为1，则DHCPv6客户端会自动启动DHCPv6无状态配置功能，以获取除地址/前缀外的其他网络配置参数（M 标记设置为1时，此标记指示主机使用配置协议来获取有状态地址）。
+    获取地址/前缀之外的其他网络参数过程具体如下：
+    a.客户端以组播的方式向DHCPv6服务器发送Information-request报文，该报文中携带Option Request选项，指定客户端需要从服务器获取的配置参数。
+    b.服务器收到Information-request报文后，为客户端分配网络配置参数，并单播发送Reply报文将网络配置参数返回给客户端。
+    c.客户端检查Reply报文中提供的信息，如果与Information-request报文中请求的配置参数相符，则按照Reply报文中提供的参数进行网络配置；否则，忽略该参数。如果接收到多个Reply报文，客户端将选择最先收到的Reply报文，并根据该报文中提供的参数完成客户端无状态配.
+
+
+
+四、手动配置ipv6地址
+==========================
+    默认启动ipv6之后，会采用无状态自动配置方式生成一个ipv6地址。若没有支持IPV6的路由和DHCP服务器，则网口只有一个本地链路地址（仅能与在本子网链路中的IPV6主机通信），此时我们可以手动配置主机的ipv6地址（如站点本地地址或全球单播地址等）。如果我们没有向ISP申请全球单播IP，那我们只能设置站点本地地址（即用于局域网的地址）。这里只给出ipv6配置的基本命令，具体配置过程需要根据实际情况而定：
+1.查看ipv6地址
+#ifconfig
+或#ip -6 addr show dev eth0
+
+2.查看ipv6路由
+#route -A inet6
+或#ip -6 route show dev eth0
+或#ip -6 route list table main dev eth0
+这里，dev部分可以忽略。
+
+
+3.添加一个ipv6地址
+#ifconfig eth0 inet6 add fe80::f2de:f1ff:fef0:861/64
+或#ip -6 addr add fe80::f2de:f1ff:fef0:861/64 dev eth0
+这会在已有的ipv6地址上，增加一个fe80::f2de:f1ff:fef0:860/64。
+
+4.删除一个ipv6地址
+#ifconfig eth0 inet6 del fe80::f2de:f1ff:fef0:860/64
+或#ip -6 addr del fe80::f2de:f1ff:fef0:861/64 dev eth0
+
+5.ipv6路由配置
+（1）经由网关连至外面
+语法：
+# /sbin/route –A inet6 add <ipv6network>/<prefixlength> gw <ipv6address> [dev <device>]
+或 # /sbin/ip -6 route <ipv6network>/<prefixlength> via <ipv6address> [dev <device>]
+
+例子：添加2000::/3的路由（即一个表项），经过网关3ffe::ffff:0:f101::1
+# /sbin/route –A inet6 add 2000::/3 gw 3ffe:ffff:0:f101::1
+# /sbin/ip -6 route 2000::/3 via 3ffe:ffff:0:f101::1
+
+（2）向指定接口发送
+语法：
+# /sbin/route –A inet6 add <network>/<prefixlength> dev <device>
+
+例子：添加2000::/3的路由（即一个表项），发送至eth0
+# /sbin/route –A inet6 add 2000::/3 dev eth0
+
+（3）设定网关（未实践）
+若要让linux成为网关，则：
+# echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+或使用radvd daemon（Router ADVertisement Daemon），支持路由的自动设定（无状态配置）：
+/usr/local/sbin/radvd
+
+
+http://blog.sina.com.cn/s/blog_635e1a9e01018ys1.html
+http://www.ipv6.org.tw/NDHU/article/20020718.htm
+http://blog.csdn.net/xuleilx/article/details/7480580
+http://zhidao.baidu.com/link?url=SAC2R5HeL5ux9BoJZcmKwtqyKc3t6MCD5X91xSfBttJvNAqq4c29lq52E-aH2y0cDsXBA39MUYzLVNpyZsmTeK
+
+
+===========待整理
+
+
+实际的设置过程：
+1，pc信息：
+（1）设置前信息
+#ifconfig eth0
+eth0      Link encap:以太网  硬件地址 f0:de:f1:f0:08:60
+          inet 地址:192.168.0.112  广播:192.168.0.255  掩码:255.255.255.0
+          inet6 地址: fe80::f2de:f1ff:fef0:860/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  跃点数:1
+          接收数据包:245747 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:198234 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:1000
+          接收字节:177545392 (177.5 MB)  发送字节:45963948 (45.9 MB)
+          中断:40 基本地址:0x6000
+
+# ip -6 rule list
+0:      from all lookup local 
+32766:  from all lookup main 
+
+#ip -6 route list table local
+local ::1 via :: dev lo  proto none  metric 0 
+local fe80::f2de:f1ff:fef0:860 via :: dev lo  proto none  metric 0 
+ff00::/8 dev eth0  metric 256
+
+#ip -6 route list table main
+fe80::/64 dev eth0  proto kernel  metric 256
+
+# route -A inet6
+内核 IPv6 路由表
+Destination                    Next Hop                   Flag Met Ref Use If
+fe80::/64                      ::                         U    256 0     0 eth0
+::/0                           ::                         !n   -1  1 13343 lo
+::1/128                        ::                         Un   0   1    20 lo
+fe80::f2de:f1ff:fef0:860/128   ::                         Un   0   1     0 lo
+ff00::/8                       ::                         U    256 0     0 eth0
+::/0                           ::                         !n   -1  1 13343 lo
+
+
+（2）设置
+站点本地地址：
+#ip -6 addr add fec0::f2de:f1ff:fef0:0860/64 dev eth0
+注意，这里最后64比特按照EUI-64规范设置。
+
+（3）设置后信息：
+#ifconfig eth0
+eth0      Link encap:以太网  硬件地址 f0:de:f1:f0:08:60  
+          inet 地址:192.168.0.112  广播:192.168.0.255  掩码:255.255.255.0
+          inet6 地址: fec0::f2de:f1ff:fef0:860/64 Scope:Site
+          inet6 地址: fe80::f2de:f1ff:fef0:860/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  跃点数:1
+          接收数据包:245933 错误:0 丢弃:0 过载:0 帧数:0
+          发送数据包:198621 错误:0 丢弃:0 过载:0 载波:0
+          碰撞:0 发送队列长度:1000 
+          接收字节:177556552 (177.5 MB)  发送字节:45986645 (45.9 MB)
+          中断:40 基本地址:0x6000
+
+# ip -6 rule list
+0:      from all lookup local 
+32766:  from all lookup main 
+
+# ip -6 route list table local
+local ::1 via :: dev lo  proto none  metric 0 
+local fe80::f2de:f1ff:fef0:860 via :: dev lo  proto none  metric 0 
+local fec0::f2de:f1ff:fef0:860 via :: dev lo  proto none  metric 0 
+ff00::/8 dev eth0  metric 256 
+
+# ip -6 route list table main
+fe80::/64 dev eth0  proto kernel  metric 256 
+fec0::/64 dev eth0  proto kernel  metric 256
+
+# route -A inet6
+内核 IPv6 路由表
+Destination                    Next Hop                   Flag Met Ref Use If
+fe80::/64                      ::                         U    256 0     0 eth0
+fec0::/64                      ::                         U    256 0     0 eth0
+::/0                           ::                         !n   -1  1 14219 lo
+::1/128                        ::                         Un   0   1    20 lo
+fe80::f2de:f1ff:fef0:860/128   ::                         Un   0   1     0 lo
+fec0::f2de:f1ff:fef0:860/128   ::                         Un   0   1     0 lo
+ff00::/8                       ::                         U    256 0     0 eth0
+::/0                           ::                         !n   -1  1 14219 lo
+
+
+2，开发板信息
+（1）设置前信息
+#ifconfig eth0
+eth0      Link encap:Ethernet  HWaddr 74:37:2F:22:88:88  
+          inet addr:192.168.0.120  Bcast:0.0.0.0  Mask:255.255.255.255
+          UP BROADCAST RUNNING MULTICAST  MTU:1492  Metric:1
+          RX packets:767 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:607 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:71555 (69.8 KiB)  TX bytes:194749 (190.1 KiB)
+          Interrupt:52 Base address:0x7000
+
+
+（2）设置
+链路本地地址：
+
+站点本地地址：
+
+路由：
+
+（3）设置后信息：
+
+3，测试状况：
+PC与开发板是直连的状况。
+（1）PC上
+PC->开发板：
+
+PC->PC自身：
+
+PC->开发板访问：
+如何用浏览器访问？
+直接在地址栏中，输入英文中括号括起来的ipv6地址即可。如：[fec0::7437:2fff:fe22:8888]
+
+
+（2）开发板上
+开发板->PC：
+
+开发板->开发板自身：
+
+http://blog.csdn.net/hansel/article/details/5304103
+
+问题：
+local路由表的作用？
+各种ipv6地址的使用范围？
+本地链路地址如何配置？
+
+貌似
+内核支持ipv6后不够，busybox也要支持ipv6。
+
+可能需要的
+支持ipv6的设备：
+路由器
+服务器
+交换机
+
+支持ipv6的网络服务：
+HTTP（Apache 2.x 或 Orion）
+DNS
+
+支持 IPv6的服务器
+因为服务器被视为 IPv6 主机，所以，在缺省情况下，服务器的 IPv6 地址会由相邻节点搜索协议自动配置。但是，许多服务器会有多个网络接口卡 (network interface card, NIC)，您可能希望将它们换出以进行维修或更换。更换 NIC 后，相邻节点搜索会自动为新 NIC 生成一个新的接口 ID。对于特定的服务器，可能不支持此行为。
+因此，请考虑为服务器的每个接口手动配置 IPv6 地址的接口 ID 部分。有关说明，请参阅如何配置用户指定的 IPv6 标记。以后需要更换现有的 NIC 时，已经配置的 IPv6 地址可应用于更换后的 NIC。
+
+与其他ipv6站点互通
+可能需要配置隧道以便能和其他站点互通
+
+获取地址前缀
+在配置 IPv6 之前，必须获取站点前缀。站点前缀用于生成IPv6实现中所有节点的 IPv6 地址。支持 IPv6 的任何 ISP 都可以提供 48 位 IPv6 站点前缀。如果当前的 ISP 仅支持 IPv4，则可能需要使用另一个 ISP 来支持 IPv6，同时保留当前的 ISP 来支持 IPv4。或者寻求其它方案。
+
+http://docs.oracle.com/cd/E24847_01/html/819-7058/ipv6-planning-7.html#scrolltoc
+
+
+其它
+==========================
+
+IPV6地址分配：
+全球单播地址空间
+ICANN从整个可聚合全球单播地址空间（格式前缀为001）中取2001::/16进行分配给各大洲地区级的Internet注册机构（Regional Internet Registry，RIR），RIR再从得到的地址空间分配/32前缀给IPv6 ISP，IPv6 ISP再从/32前缀中分配/48前缀给每个客户。/48前缀的地址空间还可以进一步分为/64前缀的子网。这样每个客户最大可以有65535个子网。为了限制IPv4地址分配初期的不合理分配方案，每个ISP必须同时满足下列条件才能获得/32前缀：
+Ø         部署外部路由协议
+Ø         至少与3个ISP相连
+Ø         至少有40个客户或至少在12个月内显示有意提供IPv6服务
+
+IPv6实验网络地址分配（6BONE）
+6BONE网络是全球范围的IPv6实验网络，使用网络前缀3ffe:0000::/16。每个伪顶级聚合分配3ffe:0800::/28范围内的/28前缀，最多支持2048个伪顶级聚合。处于末端的站点再从上游提供者得到/48前缀，每个站点内还可细分为多个/64前缀。
+6BONE网络按层次化结构分配地址，地址空间由IANA定义配，分配策略在RFC2921（6BONE伪顶级聚合和网络层聚合格式）中定义。
+注：6BONE的地址空间3FFE::/16已经于2006年6月6日停用。所有使用6bone前缀的网络必须过渡到使用由RIR分配的商用IPv6地址空间。
+
+
+
+
+   地址类型              二进制前缀            ipv6表示
+   ------------         -------------        -------------
+   Unspecified          00...0  (128 bits)   ::/128       
+   Loopback             00...1  (128 bits)   ::1/128      
+   Multicast            11111111             FF00::/8     
+   Link-local unicast   1111111010           FE80::/10    
+   Site-local unicast   1111111011           FEC0::/10    
+   Global unicast       (everything else)
+
+   Anycast addresses are taken from the unicast address spaces (of any
+   scope) and are not syntactically distinguishable from unicast
+   addresses.
+
+
+本地链路地址：link-local address
+当在一个节点启用IPV6，启动时节点的每个接口自动生成一个link-local address
+其前缀64位为标准指定的，其后64位按EUI-64格式来构造
+注意：在本链路上，路由表中看到的下一跳都是对端的Link Local地址,不是公网IP地址
+前缀：FE80::/10
+范围：只能在本地链路使用，不能在子网间路由
+为何需要link-local--在一个接口可以配置很多IPv6地址，所以学习路由就有可能出现很多下一跳。
+所以出现Link Local地址唯一标识一个节点。在本地链路看到下一跳都是对端的Link Local地址。
+在网络重新编址过程中，节点和路由器的Link Local地址不会发生变化，可以很容易地做一个修改，不用担心网络不可达。
+
+链路本地地址使用场合：1，路由器使用链路本地地址作为它们发送的RA消息的默认网关2，运行路由协议的路由器利用链路本地地址来建立邻接关系。3，IPv6路由表中的动态路由使用链路本地地址作为下一跳地址。
+
+3、本地站点地址：site-local address
+IPV6的私网地址，就像IPV4中的私网保留地址一样
+只占用到整个IPV6地址空间的0.1%
+前缀：FEC0::/10 其后的54比特用于子网ID 最后64位用于主机ID
+范围：只能在本站点内使用，不能在公网上使用
+例如：在本地分配十个子网
+1、FEC0:0:0:0001::/64
+2、FEC0:0:0:0002::/64
+3、FEC0:0:0:0003::/64
+10、FEC0:0:0:000A::/64
+本地站点地址被设计用于永远不会与全球IPV6因特网进行通信的设备，比如：打印机、内部网服务器、网络交换机等
+
+唯一本地地址：取代之前的 站点本地地址的叫法，具体用途：在百度知道有人回复：打个比方你就明白了：现在有个企业内网全网ipv6，分财务部和市场 部，很显然财务部和市场部是两个不同的子网，财务部和市场部之间交流用本地唯一地址，这个特点体现了它的组织内部特点，因为它们都属于企业内部。财务部和财务部或者市场部和市场部之间交流用链路本地地址，这个体现了他的本地子网特点。你先把ipv4分类特点抛开，再来看，不然很容易混淆。
+
+
+http://blog.163.com/hlz_2599/blog/static/14237847420125710051589/
+http://www.enet.com.cn/article/2013/0731/A20130731299435_2.shtml
+
+IPv6基本功能
+==============
+IPv6基本功能包括IPv6邻居发现协议、IPv6路径MTU发现以及IPv6域名解析。重点介绍邻居发现。
+
+http://www.ietf.org/rfc/rfc2461
+http://www.ietf.org/rfc/rfc3513
+http://www.ietf.org/rfc/rfc4861
+
+
+???邻居请求／公告，使用的是本地链路地址，还是IP地址？
+
+http://www.h3c.com.cn/Solution/Base_Network_Secrity/IPv6_Solutions/What_Do_I_Need/Bookmark/200711/319403_30004_0.htm
+
+IPV6路径MTU发现：
+http://www.h3c.com.cn/Solution/Base_Network_Secrity/IPv6_Solutions/What_Do_I_Need/Bookmark/200711/319403_30004_0.htm
+
+IPV6域名解析：
+http://www.360doc.com/content/12/0313/13/3725126_193980948.shtml
+
+
+邻居发现机制
+重复地址检测机制
+
+
+IPV6域名解析
+
+http://www.h3c.com.cn/Solution/Base_Network_Secrity/IPv6_Solutions/What_Do_I_Need/Bookmark/200711/319403_30004_0.htm
+http://www.360doc.com/content/12/0313/13/3725126_193980948.shtml
+
+IPV6向IPV4过度采用的技术
+
+
+
+六、自动配置ipv6地址
+
+
+
+dhcpv6服务器搭建（待实践）
+============
+Linux
+dibbler-server/dibbler-client/dibbler-replay
+http://xiaopangxiongyuan.blog.163.com/blog/static/12490117020119935320844/
+
+windows下的配置
+nic.seu.edu.cn/s/8/t/316/d8/2d/info55341.htm
+klub.com.pl/dhcpv6/#DOWNLOAD
+
+
+
+windows和linux互相ping通：
+==============
+1.windows 7
+开始->右击"网络"->属性->本地连接->属性->双击internet协议版本6(tcp/IPv6)
+
+2.Ubuntu 12.04
+# ip -6 addr add fc00::163/64 dev eth0
+
+3.测试：
+对本地链路地址和设置的地址，均可互相连通。
+
+

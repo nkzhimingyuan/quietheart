@@ -1,0 +1,8 @@
+插网线和wifi后，
+两者都能ping通。
+拔掉网线，都不好用。
+好用的方法：
+ip route flush table main
+ifconfig ra0 down
+ifconfig ra0 up
+

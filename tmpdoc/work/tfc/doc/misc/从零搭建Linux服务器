@@ -1,0 +1,64 @@
+1.下载Linux镜像文件，目前大众流行使用ubuntu
+http://releases.ubuntu.com/lucid/
+
+2.下载VMware Workstation或者Oracle VM VirtualBox虚拟机，设置好虚拟机并安装Linux
+
+3.配置apt，如果要设置代理的话，需要这一步
+修改/etc/apt/apt.conf
+例子：
+Acquire::http::proxy "http://127.0.0.1:8000/";
+Acquire::ftp::proxy "ftp://127.0.0.1:8000/";
+Acquire::https::proxy "https://127.0.0.1:8000/";
+
+4.安装ssh服务
+sudo apt-get install openssh-server
+配置文件在/ etc/ssh/sshd_config，可根据需要修改
+ssh安装好后，就可以远程安装下面的服务了
+
+4.更新开发软件
+sudo apt-get install gtkterm cutecom  flex  autogen  ddd indent info libc6-dev nfs-kernel-server nfs-common smbfs system-config-samba samba build-essential valgrind gdb bison manpages-dev libncurses5-dev automake autoconf autogen indent libtool tftp tftpd  xinetd minicom gcc php5 libapache2-mod-php5 phpmyadmin php5-mysql php5-pgsql uboot-mkimage  open-vm-dkms yasm nasm mtd-utils sed wget cvs subversion git-core coreutils unzip texi2html texinfo docbook-utils gawk python-pysqlite2 diffstat help2man make gcc g++ desktop-file-utils chrpath libxml2-utils xmlto python-psyco curl exuberant-ctags wget unzip ttf-inconsolata splint binutils-multiarch debhelper fakeroot realpath libsdl-gfx1.2-4 gettext procps xsltproc libdbus-1-3 liblua5.1-0 libexif12 libcurl3  libavformat-dev libavutil-dev libpostproc-dev libswscale-dev libiso9660-dev libssl-dev lsb-release libvdpau-dev libmicrohttpd-dev libmodplug-dev  curl python-dev libyajl-dev libbluetooth-dev zlib1g-dev libsmbclient-dev libboost-thread-dev libmad0-dev libjpeg-dev libsamplerate-dev libogg-dev libvorbis-dev
+
+sudo apt-get install libfreetype6-dev libfontconfig-dev libbz2-dev libfribidi-dev libsqlite3-dev libmysqlclient-dev libasound2-dev libpng12-dev libpng-dev libpcre3-dev liblzo2-dev libcdio-dev libsdl-dev libsdl-image1.2-dev libcurl4-gnutls-dev libsdl-mixer1.2-dev libenca-dev libjasper-dev libxt-dev
+
+4.安装samba服务
+sudo apt-get install samba
+安装好后，配置/etc/samba/smb.conf
+sudo service smbd restart
+附件有例子，不断优化中
+
+5.安装nfs服务
+sudo apt-get install nfs-kernel-server
+配置文件在/etc/exports
+/home/huangwei *(rw,nohide,insecure,sync,no_root_squash,no_subtree_check)
+
+6.安装vim
+sudo apt-get install vim
+
+7.安装svn
+sudo apt-get install subversion
+
+8.安装mkimage
+sudo apt-get install uboot-mkimage
+
+9.安装ncurses
+ncurses是字符终端下屏幕控制的基本库。可能很多新开发的程序都不使用了，不过如果要编译一些老程序，还经常遇得到。 
+sudo apt-get install libncurses5-dev
+
+10.安装tftp server
+sudo apt-get install tftpd-hpa
+sudo vim tftpd-hpa
+sudo service tftpd-hpa restart
+配置参考
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/tftp"
+TFTP_ADDRESS="0.0.0.0:69"
+TFTP_OPTIONS="-l -c -s"
+
+11.修改默认的sh
+Ubuntu继承了Debian，使用dash，执行bash脚本会出错
+huangwei@ubuntu-full-server:/bin$ ls -l sh
+lrwxrwxrwx 1 root root 4 2013-02-22 09:30 sh -> dash
+修改方法：
+命令行执行：sudo dpkg-reconfigure dash
+在界面中选择no
+再ls -l `which sh` 提示/bin/sh -> bash

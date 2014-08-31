@@ -1,0 +1,47 @@
+添加usb设备
+hub_events();
+-->hub_port_connect_change(hub, i,portstatus, portchange);
+---->usb_alloc_dev(hdev, hdev->bus, port1);//&usb_bus_type分配给设备
+---->usb_new_device(udev);
+------>device_add(&udev->dev);//(drivers/base/core.c)
+-------->bus_add_device(dev);//加入总线设备列表
+-------->bus_probe_device(dev);
+---------->device_attach(dev);//[drivers/base/dd.c]
+------------>bus_for_each_drv(dev->bus, NULL, dev, __device_attach);//遍历并找到此设备的驱动
+-------------->__device_attach(drv, data);//找的驱动usb支持此设备
+---------------->driver_probe_device(drv, dev);
+------------------>really_probe(dev, drv);
+-------------------->drv->probe(dev);//即usb_probe_device(dev);[drivers/usb/core/driver.c]
+---------------------->udriver->probe(udev);//即generic_probe(udev);[drivers/usb/core/generic.c]
+------------------------>usb_set_configuration(udev, c);//[drivers/usb/core/message.c]
+-------------------------->nintf = cp->desc.bNumInterfaces;//得到接口数目
+-------------------------->for(nintf):device_add(&intf->dev);//循环添加接口
+
+
+添加interface
+device_add(&intf->dev);
+-->bus_probe_device(dev);
+---->device_attach(dev);//[drivers/base/dd.c]
+------>bus_for_each_drv(dev->bus, NULL, dev, __device_attach);//遍历并找到此设备的驱动
+-------->__device_attach(drv, data);//遍历到option驱动时，在option_ids[]结构中，找到该驱动支持此设备
+---------->driver_probe_device(drv, dev);
+------------>really_probe(dev, drv);//[drivers/base/dd.c]
+-------------->drv->probe(dev);//即usb_probe_interface(dev);
+---------------->driver->probe(intf, id);//即usb_serial_probe(interface,id);[drivers/usb/serial/usb-serial.c]
+这里检测到用pl2303convertor并执行pl2303的attach函数(type->attach(serial);)。
+
+
+usb_serial_probe(interface,id);
+-->type = search_serial_device(interface);//找到pl2303驱动
+-->serial = create_serial(dev, interface, type);//创建serial，将type驱动赋值给serial->type，即指向pl2303
+-->port = serial->port[i];
+-->dev_set_name(&port->dev, "ttyUSB%d", port->number);
+-->retval = device_add(&port->dev);
+---->bus_probe_device(dev);
+---->同上……
+
+really_probe(dev, drv);//[drivers/base/dd.c]
+
+
+
+

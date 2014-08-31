@@ -1,0 +1,74 @@
+format 74
+
+classinstancecanvas 128130 classinstance_ref 128002 // MainThread
+  xyz 26 4 2005 life_line_z 2000
+end
+note 129282 "eth0"
+  xyzwh 252 170 3005 55 35
+classinstancecanvas 129410 classinstance_ref 128130 // Thread
+  xyz 434 140 2005 life_line_z 2000
+end
+note 129794 "wifi"
+  xyzwh 312 243 2020 47 37
+classinstancecanvas 130306 classinstance_ref 128258 // Thread
+  xyz 544 139 2005 life_line_z 2000
+end
+note 130690 "3G"
+  xyzwh 527 310 2020 41 35
+durationcanvas 128258 classinstance_ref 128130 // MainThread:network
+  xyzwh 87 58 2010 11 98
+  overlappingdurationcanvas 128514
+    xyzwh 93 99 2020 11 34
+  end
+end
+durationcanvas 128770 classinstance_ref 128130 // MainThread:network
+  xyzwh 87 195 2010 11 207
+  overlappingdurationcanvas 129026
+    xyzwh 93 222 2020 11 25
+  end
+end
+durationcanvas 129538 classinstance_ref 129410 // Thread:wifi
+  xyzwh 467 300 2010 11 31
+end
+durationcanvas 130434 classinstance_ref 130306 // Thread:CT3G
+  xyzwh 583 361 2010 11 25
+end
+reflexivemsg 128386 synchronous
+  to durationcanvas_ref 128258
+  yz 58 2015 explicitmsg "InitNetworkParameter(&ifaceParam)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 103 43
+reflexivemsg 128642 synchronous
+  to durationcanvas_ref 128514
+  yz 99 2025 explicitmsg "GetNetworkParameter(&ifaceParam, GET_PARA_INI)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 119 104
+reflexivemsg 128898 asynchronous
+  to durationcanvas_ref 128770
+  yz 195 2015 explicitmsg "SetNetworkAsync(&ifaceParam)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 14 179
+reflexivemsg 129154 synchronous
+  to durationcanvas_ref 129026
+  yz 222 2025 explicitmsg "SetNetworkInterface(ifaceIdx, iface, SET_PARA_MEM, 0)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 116 208
+msg 129666 asynchronous
+  from durationcanvas_ref 128770
+  to durationcanvas_ref 129538
+  yz 302 2015 explicitmsg "SetNetworkInterface(ifaceIdx, iface, SET_PARA_MEM, 0)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 121 287
+msg 130562 asynchronous
+  from durationcanvas_ref 128770
+  to durationcanvas_ref 130434
+  yz 362 2015 explicitmsg "SetNetworkInterface(ifaceIdx, iface, SET_PARA_MEM, 0)"
+  show_full_operations_definition default drawing_language default show_context_mode default
+  label_xy 169 347
+line 129922 -_-_
+  from ref 129282 z 3006 to ref 129154
+line 130050 -_-_
+  from ref 129794 z 2021 to ref 129666
+line 130818 -_-_
+  from ref 130690 z 2021 to ref 130562
+end

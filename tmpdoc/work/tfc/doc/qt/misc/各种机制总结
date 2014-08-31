@@ -1,0 +1,14 @@
+记录有待整理的机制
+
+（*）多语言机制
+只对tr、lupdate、lrelease、linguist相关内容有所了解。
+
+（*）Qt style
+
+    
+（*）Graphics View 架构
+http://www.cppblog.com/yuanyajie/archive/2007/09/26/32960.html
+http://www.cppblog.com/yuanyajie/archive/2007/09/26/32961.html
+http://www.cppblog.com/yuanyajie/archive/2007/09/27/32962.html
+Graphics View提供的是一种类似于Qt model-view的编程。多个views可以监视同一个场景，而场景包含多个具有多种几何外形的items。
+view,scene,item

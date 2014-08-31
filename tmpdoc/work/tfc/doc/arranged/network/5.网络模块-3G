@@ -1,0 +1,167 @@
+这里介绍在嵌入式Linux中，实现3G联网的基本方法。包括驱动配置，和联网的过程。
+具体代码实现，参见3g.c文件。
+
+1、配置内核
+打开ppp相关配置：
+Device Drivers  --->
+    [*] Network device support  --->
+     <*>   PPP (point-to-point protocol) support
+          [*]     PPP multilink support (EXPERIMENTAL) 
+          [*]     PPP filtering
+          <*>     PPP support for async serial ports
+          <*>     PPP support for sync tty ports 
+
+打开usb串口相关配置：
+[*] USB support  ---> 
+    <*>   USB Serial Converter support  --->
+        [*]   USB Serial Console device support
+        [*]   USB Generic Serial Driver
+        <*>   USB driver for GSM and CDMA modems
+
+2、确定产品型号
+2.1、配置好的内核，先编译后，启动系统，插入模块usbserial.ko、option.ko。
+2.2、插入3g网芯片和sim卡。
+#lsusb
+这样会显示类似如下相应信息：
+12d1:1505
+这里，若无lsusb命令，可以查看/sys/bus/usb/devices/下有相应的设备信息，其中：
+# cat /sys/bus/usb/devices/1-1/idProduct 
+1505
+# cat /sys/bus/usb/devices/1-1/idVendor 
+12d1
+这里假设是1-1usb设备。注：有些芯片的3g产品型号可能不和这里的一样，需要借助第三方工具将usb设备识别成3g设备，才能在这里查询到。具体可参考一个工具：usb_modeswitch，的相关信息。
+
+3.修改内核代码，添加相应设备
+根据获得的产品型号，添加内核代码。
+#vim kernel/drivers/usb/serial/option.c
+添加内容：
+...
+#define HUAWEI_VENDOR_ID                0x12D1
+...
+#define HUAWEI_PRODUCT_CE189            0x1505
+...
+static struct usb_device_id option_ids[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+static struct usb_device_id option_ids1[] = {
+...
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_CE189) },
+...
+};
+...
+
+3.启动3g模块
+#insmod usbserial.ko
+#insmod option.ko
+...
+[  124.770000] option 1-1:1.0: GSM modem (1-port) converter detected
+[  124.780000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB0
+[  124.790000] option 1-1:1.1: GSM modem (1-port) converter detected
+[  124.800000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB1
+[  124.810000] option 1-1:1.2: GSM modem (1-port) converter detected
+[  124.810000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB2
+[  124.830000] option 1-1:1.3: GSM modem (1-port) converter detected
+[  124.830000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB3
+[  124.850000] option 1-1:1.4: GSM modem (1-port) converter detected
+[  124.860000] usb 1-1: GSM modem (1-port) converter now attached to ttyUSB4
+...
+看到如上信息后，可在/dev目录下查看是否生成显示的ttyUSB*相关文件(开发板在/dev/tts下，这取决于系统udev配置)，有则说明3g硬件识别成功。
+
+
+4.拨号上网，
+通过pppd拨号上网，可以使用预先配置好的信息，无需用户干预。如下
+（1）pppd对cdma2000的拨号脚本
+#cat /etc/ppp/peers/cdma2000ce189
+#This is pppd script used by huawei ce189.
+/dev/ttyUSB0
+115200
+crtscts
+modem
+debug
+lock
+nodetach
+usepeerdns
+defaultroute
+noipdefault
+noauth
+user "ctnet@mycdma.cn"
+password "vnet.mobi"
+#lcp-echo-failure 5
+#lcp-echo-interval 30
+#persist
+0.0.0.0:0.0.0.0
+connect '/usr/sbin/chat -s -v -f /etc/ppp/cdma2000-connect-chat'
+这里，注意，noauth选项一定要有，这里"lcp-echo-failure 5"表示5次心跳确认失败后会终止连接、"lcp-echo-interval 30"表示心跳确认时间为30秒，"persist"表示基于前面心跳失败后，不会终止连接而是重新拨号。
+
+（2）pppd拨号脚本调用的chat拨号脚本
+#cat /etc/ppp/cdma2000-connect-chat
+TIMEOUT 5
+ABORT "DELAYED"
+ABORT "BUSY"
+ABORT "ERROR"
+ABORT "NO DIALTONE"
+ABORT "NO CARRIER"
+""   AT
+"OK-+++\c-OK" ATH0
+TIMEOUT 40
+""   AT
+OK  ATDT#777
+CONNECT ""
+这里，脚本含义参见"man chat"。
+
+（3）调用pppd拨号脚本：
+#pppd call cdma2000ce189
+这里，即调用前面的脚本配置并连接上网。结果和图形的一样。通过"Ctrl-C"即可断开连接。
+
+（4）查看链接情况：
+# ifconfig
+eth0      Link encap:Ethernet  HWaddr 74:37:2F:00:00:00
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:338 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:304 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:166139 (162.2 KiB)  TX bytes:39884 (38.9 KiB)
+          Interrupt:52 Base address:0x7000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:12 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:1669 (1.6 KiB)  TX bytes:1669 (1.6 KiB)
+
+ppp0      Link encap:Point-to-Point Protocol  
+          inet addr:183.41.122.220  P-t-P:183.41.0.1  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1500  Metric:1
+          RX packets:3 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:11 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:3 
+          RX bytes:66 (66.0 B)  TX bytes:3164 (3.0 KiB)
+
+其中，ppp0就是3g的链接，这时板子就能够访问外网了。
+
+（5）AT命令调试测试
+实际对3G都是的操作大多数通过哦AT命令完成，AT命令需要参考相应的3G规范手册，测试和发送at命令的方法非常简单，可以自己写一个小程序写串口文件。如有工具如minicom,也可以在minicom下启动板子后，直接：
+#cat /dev/ttyUSB0&
+#echo "at" >/dev/ttyUSB0
+等等等。其中,cat表示显示输出，echo指明写入的命令。
+
+（6）当前遇到过的问题
+为什么分配了私有地址？
+对不同地区电信3g联网问题：一般分配公网ip；有些地区，运营商可能会分配私网地址（可能是为了节省ip资源或者安全性），导致设备只能向外访问，无法直接访问设备；还有些地区，不允许对分配的地址进行ping操作；具体策略需视当地运营商而定。
+总结一下，大致如下： 
+*当地运营商为客户端设备分配IP是动态的，有时会分配私网IP，有时会分配公网IP（可能是为了节省IP地址资源）。 
+*运营商在其内部路由器可能会设置，使得私网IP只能向外访问，公网IP可以双向。 
+*如果设备作为客户端向外访问，则不用关心其是否能被外访问，只需动态分配，不用固定ip。 
+*如果设备作为服务器，那么可能需要固定IP，以确保能被访问到。 
+*咨询过电信在深圳的客服，说3G暂无提供固定IP的业务。
+
+为什么无法连接？
+查看是否欠费。
+
+

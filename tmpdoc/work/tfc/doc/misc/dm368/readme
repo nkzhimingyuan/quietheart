@@ -1,0 +1,40 @@
+一、uboot烧写：
+1,将下面的跳线两个全部板成on。
+2,去掉其他访问串口的程序。
+sfh_DM36x.exe -nanderase -p com7
+sfh_DM36x.exe -nandflash ubl_dm36x_nand_v1.01.bin u-boot-1.3.4-dm368_ipnc.bin -p com7
+
+二、文件系统镜像：
+#sudo apt-get install liblzo2-dev
+ubifs:
+    $(UBIFS_PATH)/mkfs.ubifs -r  $(TARGET_FS) -m 2048 -e 126976 -c 256  -o ubifs.img
+    $(UBIFS_PATH)/ubinize -o ipnc_dm368_ubifs -m 2048 -p 128KiB -O 2048  dm368_ubinize.cfg
+    mv ipnc_dm368_ubifs $(TFTP_HOME)
+
+三、升级：
+注意修改firmware.config配置的路径。
+#cd /home/quietheart/work/develop/branch/multiprocess/dm8127/tools/网络远程升级包制作
+#make mkfirmware
+生成的文件在version目录中。
+
+板子启动ftp服务后，登录板子，在将生成的升级包文件上传到板子上即可。一般是/tmp目录。
+
+
+四、其它
+环境变量设置：
+declare -x DVSDK_BASE_DIR="/home/huangwei/dm368sdk/Source/dvsdk_ipnctools"
+declare -x FILESYS_BASE_DIR="/home/huangwei/5_sdk"
+declare -x TFTP_HOME="/home/huangwei/project/output"
+declare -x MVTOOL_DIR="/home/huangwei/dm368sdk/Source/dvsdk_ipnctools/linux-devkit"
+export PATH=/home/huangwei/dm368sdk/Source/dvsdk_ipnctools/linux-devkit/bin:$PATH
+declare -x KERNELDIR="/home/huangwei/dm368sdk/Source/dvsdk_ipnctools/ipnc_psp_03_21_00_04/kernel"
+declare -x UBOOTDIR="/home/huangwei/dm368sdk/Source/dvsdk_ipnctools/ipnc_psp_03_21_00_04/u-boot"
+declare -x MVTOOL_PREFIX="/home/huangwei/dm368sdk/Source/dvsdk_ipnctools/linux-devkit/bin/arm-arago-linux-gnueabi-"
+declare -x UBIFS_PATH="/home/huangwei/5_sdk/mtd-utils/32bit" 
+
+启动参数配置（启动命令uboot已经集成）
+Boot Cmd:
+setenv bootargs 'mem=48M console=ttyS0,115200n8 noinitrd  rw ubi.mtd=5,2048  rootfstype=ubifs root=ubi0:rootfs cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1 cmemk.useHeapIfPoolUnavailable=1 nohz=off highres=off clocksource=acpi_pm lpj=1077248';saveenv
+setenv bootargs 'mem=48M console=ttyS0,115200n8 noinitrd  rw ubi.mtd=3,2048  rootfstype=ubifs root=ubi0:rootfs cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1 cmemk.useHeapIfPoolUnavailable=1 nohz=off highres=off clocksource=acpi_pm lpj=1077248';saveenv
+NFS Cmd:
+setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=192.168.3.16:/nfs/yukesheng/filesys nolock ip=192.168.28.225:192.168.3.16:192.168.28.1:255.255.255.0::eth0:off eth=00:02:04:06:05:04 cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv

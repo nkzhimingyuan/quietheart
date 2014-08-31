@@ -1,0 +1,76 @@
+3g usb模块+一张sim卡，电信cdma2000
+使用
+华为ce189的3g网卡
+
+pc端：
+Ubuntu 12.04
+1.安上sim卡，插入网卡
+2.网络配置：
+2.1图形设置
+编辑链接->移动宽带->添加（新连接名为china telecom 1）
+具体配置：
+(1)IP配置：自动（即ppp自动）
+(2)移动宽带：
+编号：#777
+用户名：ctnet@mycdma.cn
+密码：vnet.mobi
+(3)ppp设置：
+默认。
+即chap、pap等鉴权方式都选中。
+（4）连接
+保存上述配置后，即可通过点击新建的连接"china telecom 1"连上。
+（5）
+ifconfig可见网络的名字为ppp0
+通过firefox即可上网。
+
+2.2命令行设置：
+通过pppd拨号上网。如下
+1.pppd对cdma2000的拨号脚本
+#cat /etc/ppp/peers/cdma2000ce189
+#This is pppd script used by huawei ce189.
+/dev/ttyUSB0
+115200
+crtscts
+modem
+debug
+lock
+nodetach
+usepeerdns
+defaultroute
+noipdefault
+noauth
+user "ctnet@mycdma.cn"
+password "vnet.mobi"
+#lcp-echo-failure 5
+#lcp-echo-interval 30
+0.0.0.0:0.0.0.0
+connect '/usr/sbin/chat -s -v -f /etc/ppp/cdma2000-connect-chat'
+这里，注意，noauth选项一定要有。
+
+2.pppd拨号脚本调用的chat拨号脚本
+#cat /etc/ppp/cdma2000-connect-chat
+TIMEOUT 5
+ABORT "DELAYED"
+ABORT "BUSY"
+ABORT "ERROR"
+ABORT "NO DIALTONE"
+ABORT "NO CARRIER"
+""   AT
+"OK-+++\c-OK" ATH0
+TIMEOUT 40
+""   AT
+OK  ATDT#777
+CONNECT ""
+这里，脚本含义参见"man chat"，基本每行是"<期望接收的字符> <发送字符>"。
+
+
+3.调用pppd拨号脚本：
+#pppd call cdma2000ce189
+这里，即调用前面的脚本配置并连接上网。结果和图形的一样。通过"Ctrl-C"即可断开连接。
+
+至此，即可通过图形或命令行方式实现3g上网。
+
+
+
+嵌入式
+2.lsusb会显示相应信息。

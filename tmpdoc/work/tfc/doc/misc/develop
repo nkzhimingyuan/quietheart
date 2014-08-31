@@ -1,0 +1,149 @@
+相关资料：
+0,Uboot设置
+ip地址范围：
+通过插排号81对应：
+192.168.27.216-192.168.27.220
+
+76：
+192.168.28.226-192.168.28.230
+
+set ipaddr 192.168.0.120;set serverip 192.168.0.112;set gatewayip 192.168.0.1;set netmask 255.255.255.0;saveenv
+
+jiang
+set ipaddr 192.168.0.216;set serverip 192.168.0.112;set gatewayip 192.168.0.1;set netmask 255.255.255.0;setenv bootcmd 'nboot 0x80700000 0 0x500000;bootm 0x80700000';saveenv
+
+nfs:
+set bootargs tfc=8 mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/home/quietheart/nfs/filesys nolock ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+
+
+取消新内核串口打印的屏蔽(20130816)：
+set bootargs 'mem=48M tfc=8 console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=192.168.0.220:192.168.0.112:192.168.0.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1'
+
+
+ubinfs
+setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/nfs/ipncv3/filesys nolock init=/sbin/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+
+ram:
+set bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+
+
+1,项目和代码：
+192.168.3.16/dupeng/IPMediaDevice
+其中文件系统在trunk/src/davinci
+
+2,nfs文件系统：
+
+
+3,编译：
+/etc/profile
+27 PATH="/usr/local/montavista/pro/devkit/arm/v5t_le/bin:/usr/local/montavista/pro/bin:/usr/local/montavista/common/bin:$PATH"
+28 PKG_CONFIG_PATH=/usr/lib:/usr/lib/pkgconfig
+29 export PKG_CONFIG_PATH
+30 MVTOOL_DIR="/usr/local/montavista/pro/devkit/arm/v5t_le"
+31 DVSDK_BASE_DIR="/usr/local/dvsdk_ipnctools"
+32 FILESYS_BASE_DIR="/var/lib/jenkins/jobs/ipnc/workspace/output"
+33 TFTP_HOME="/var/lib/jenkins/jobs/ipnc/workspace/output"
+34 KERNELDIR="/usr/local//davinci/dm36x/mvl-kernel"
+35 
+36 export MVTOOL_DIR
+37 export DVSDK_BASE_DIR
+38 export FILESYS_BASE_DIR
+39 export TFTP_HOME
+40 export KERNELDIR
+41 
+42 umask 022
+43 
+44 # 2013年 03月 20日 星期三 09:16:37 CST
+45 # Hisilicon Linux, Cross-Toolchain PATH
+46 export PATH="/opt/hisi-linux/x86-arm/arm-hisiv200-linux/target/bin:$PATH" 
+47 # 
+48 
+49 #export LANG=UTF-8
+
+
+~/.bashrc
+#My Environment
+export FILESYS_BASE_DIR="/home/quietheart/nfs/filesys"
+export TFTP_HOME="/home/dupeng/tftp"
+export echo=echo
+
+
+
+文件系统的/opt/ipnc/system.conf可以看见文件系统属于r02还是r03
+r02的如果超过1分钟不喂狗，就会自动重启，所以uboot里不要超过1分钟。启动之后有一个程序会自动喂狗。
+/opt/ipnc下的 WatchDog.out 程序会自动喂狗。
+v02的板子是5V的USB，v05的是3V？（usb供电不足可能会有vBus错误）
+
+有时网络无法访问，请确认是否mac冲突：
+ifconfig eth0 hw ether XX:XX:XX:XX:XX:XX
+
+内核的编译查看
+make lsp
+
+最终是：
+cp arch/arm/configs/davinci_dm365_ipnc_defconfig_nfs(or nand) arch/arm/configs/davinci_dm365_ipnc_defconfig
+make ARCH=arm CROSS_COMPILE=arm_v5t_le- davinci_dm365_ipnc_defconfig
+make ARCH=arm CROSS_COMPILE=arm_v5t_le- uImage
+最新内核应该：IPMediaDevice/trunk/src/davinci/mvl-kernel.tar.gz
+
+具体路径通过KERNELDIR指定使用make lsp编译之前需要先用make编译好ipnc。
+都是dm368_nfs的配置？?
+
+
+v05的(若5v)加载wifi usb网卡的方式：
+insmod /opt/ipnc/modules/usbcore.ko
+insmod /opt/ipnc/modules/musb_hdrc.ko
+insmod /opt/ipnc/modules/rt3070sta.ko
+可参见/opt/ipnc/start_ipnc.sh脚本。
+
+内核的路径：
+/usr/local/davinci/dm36x/mvl-kernel
+
+wifi驱动的路径：
+/home/quietheart/work/develop/IPMediaDevice.origin/src/davinci/drivers/RT3070_STA_V2.5.0.3_DPO
+编译：make KERNELDIR=/usr/local/davinci/dm36x/mvl-kernel/ CROSS_COMPILE=arm_v5t_le- ARCH=arm
+测试：
+ifconfig ra0 up
+wpa_supplicant -B -C /tmp/wpa_supplicant -c /tmp/wpa_supplicant.conf -i ra0
+dhcpcd ra0
+
+其中：wpa_supplicant.conf
+ctrl_interface=DIR=/tmp/wpa_supplicant.conf GROUP=root
+network={
+    ssid="WIFI_CAM"
+    scan_ssid="WIFI_CAM"
+    proto=WPA
+    key_mgmt=WPA-PSK
+    psk="12345678"
+    pairwise=CCMP TKIP
+    priority=5
+}
+
+
+升级工具升级之后，会修改uboot设置。
+升级工具可以直接烧写只含uboot的升级包。
+
+
+
+调试命令的使用：
+telenet 192.168.0.120 8000
+此为调试命令接口
+然后用户密码为:admin和admin
+然后：help
+这样即可看到相应的调试命令。调试命令的实现参见每个模块中的debug_cmd.c类似文件。
+
+
+telnet摄像机：
+如果直接用telnet登录，不用串口：
+telnet 192.168.0.120 8000
+然后用户密码为:admin和admin
+然后：system telnetd
+摄像机重启后再telnet 192.168.0.120
+用户密码为：root和root即可。
+
+uboot环境变量的清除和重置：
+DM36x IPNC:>run erase_env
+其实， erase_env=nand erase 4C0000 20000
+
+支持3gwifi：
+set USBPeripherals +wifi+3g

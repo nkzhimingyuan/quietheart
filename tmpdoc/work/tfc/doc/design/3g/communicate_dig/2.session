@@ -1,0 +1,13 @@
+window_sizes 1280 672 320 954 478 120
+diagrams
+  active  sequencediagram_ref 128002 // networkThread
+    954 478 100 4 0 0
+  sequencediagram_ref 128130 // Modules
+    763 382 100 4 147 0
+end
+show_stereotypes
+selected sequencediagram_ref 128002 // networkThread
+open
+  classview_ref 128002 // modules
+end
+end

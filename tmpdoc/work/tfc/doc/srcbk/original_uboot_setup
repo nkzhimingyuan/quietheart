@@ -1,0 +1,54 @@
+DM36x IPNC:>
+bootcmd_kernel1=setenv bootcmd 'nboot 0x80700000 0 0x500000;bootm 0x80700000';saveenv
+bootcmd_kernel2=setenv bootcmd 'nboot 0x80700000 0 0x2900000;bootm 0x80700000';saveenv
+bootargs_nfs=setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=${serverip}:/home/jiangjx/UbuntuShare/filesys nolock ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+bootargs_rootfs1=setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock3 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+bootargs_rootfs2=setenv bootargs mem=48M console=ttyS0,115200n8 root=/dev/mtdblock5 rootfstype=cramfs rw init=/init ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1;saveenv
+bootdelay=1 
+baudrate=115200
+ethaddr=74:37:2F:00:00:00
+bootfile="uImage"
+loadaddr=82000000
+bootaddr=80700000
+kernel1addr=500000
+kernel1erasesize=400000
+kernel1writesize=360000
+rootfs1addr=900000
+rootfs1erasesize=2000000
+rootfs1writesize=1400000
+kernel2addr=2900000
+kernel2erasesize=400000
+kernel2writesize=360000
+rootfs2addr=2D00000
+rootfs2erasesize=2000000
+rootfs2writesize=1400000
+led_on=mw 01C4000C E15AFFFF;mw 01C67010 0;mw 01C6701C FFFFFFFF
+led_off=mw 01C4000C E15AFFFF;mw 01C67010 0;mw 01C67018 FFFFFFFF
+erase_env=nand erase 4C0000 20000
+set_system1=run bootcmd_kernel1;run bootargs_rootfs1
+set_system2=run bootcmd_kernel2;run bootargs_rootfs2
+update_kernel1=tftp ${loadaddr} uImage;nand erase ${kernel1addr} ${kernel1erasesize};nand write ${loadaddr} ${kernel1addr} ${kernel1writesize};
+update_rootfs1=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs1addr} ${rootfs1erasesize};nand write ${loadaddr} ${rootfs1addr} ${rootfs1wris
+ize}
+update_kernel2=tftp ${loadaddr} uImage;nand erase ${kernel2addr} ${kernel2erasesize};nand write ${loadaddr} ${kernel2addr} ${kernel2writesize};
+update_rootfs2=tftp ${loadaddr} rootfs.cramfs;nand erase ${rootfs2addr} ${rootfs2erasesize};nand write ${loadaddr} ${rootfs2addr} ${rootfs2wrie
+size}
+update_system1=run update_kernel1;run update_rootfs1;run set_system1;echo ********TFTP Update System1 Finished!!!********
+update_system2=run update_kernel2;run update_rootfs2;run set_system2;echo ********TFTP Update System2 Finished!!!********
+filesize=D1B000
+fileaddr=82000000
+gatewayip=192.168.26.1
+netmask=255.255.255.0
+ipaddr=192.168.26.110
+serverip=192.168.26.211
+bootcmd=nboot 0x80700000 0 0x500000;bootm 0x80700000
+bootargs=mem=48M console=ttyS0,115200n8 root=/dev/nfs rw nfsroot=192.168.26.207:/nfs/hecaian/filesys nolock ip=192.168.26.209:192.168.26.207:192.168.26.1:255.255.255.0::eth0:off eth=aa:bb:cc:dd:ee:88 cmemk.phys_start=0x83000000 cmemk.phys_end=0x88000000 cmemk.phys_start_1=0x00001000 cmemk.phys_end_1=0x00008000 cmemk.pools_1=1x28672 cmemk.allowOverlap=1
+mac=74:37:2F:99:99:98
+uuid=d4ce0480-7cf8-488a-8853-6e61d6f59026
+stdin=serial
+stdout=serial
+stderr=serial
+ver=U-Boot 1.3.4-dirty (Mar 18 2013 - 13:33:15)
+
+Environment size: 3421/131068 bytes
+

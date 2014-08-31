@@ -1,0 +1,111 @@
+
+主要命令来自linux上的ip命令对网络层的管理。
+1.网口信息获取和配置：
+对网口链路层的操作，使用ip link操作。主要是：
+*显示当前接口信息：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ ip link list
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast state DOWN qlen 1000
+    link/ether f0:de:f1:f0:08:60 brd ff:ff:ff:ff:ff:ff
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
+    link/ether 44:6d:57:5e:28:6c brd ff:ff:ff:ff:ff:ff
+这里，显示出，有一个eth0网卡，一个无线网卡wlan0和一个回环lo，其中eth0卡处于down的状态（因为使用"ifconfig eth0 down"将其禁用，使用"ifconfig"无法再看见eth0只能用"ifconfig -a"或"ip link list"开查看）。
+
+*启用网口：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ip link set eth0 up
+也可用ifconfig eth0 up，建议用较新的ip命令。
+
+*关闭网口：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ip link set eth0 down
+也可用ifconfig eth0 down。
+
+
+2.设置、删除、ip地址
+对ip地址的操作可以用ifconfig，但是方法有点老，因为网口可能有多个ip地址，这时候，只能通过ifconfig显示出第一个地址。或者用eth0:1、eth0:2的方式，但是ip命令提供了更新的操作方式，具体参见man手册。
+*删除eth0的一个ip地址：
+#ip addr del 192.168.1.222 dev eth0
+
+*为eth0添加一个ip地址：
+#ip addr add 192.168.1.111 dev eth0
+添加之后，在原有网址基础上，可以也可访问192.168.1.111到达本机，但是只有第一次添加的addr在ifconfig中显示。
+
+*查看ip地址
+#ip addr show
+查看网卡上的ip地址，相对ifconfig，此命令显示一个网卡上所有的ip，而ifconfig只显示第一个。
+
+*删除所有的ip地址：
+#ip addr flush dev eth0
+
+
+3.对路由的控制
+IPC采用策略路由实现对各数据的发送而非传统的“根据目的”路由。linux内核不止维护一个路由表，这里的大部分操作不能用传统的route命令实现，而需要用较新的ip命令。
+*显示所有路由表：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ ip rule list
+0:      from all lookup local 
+32766:  from all lookup main 
+32767:  from all lookup default 
+表名和编号对应信息可以查看"/etc/iproute2/rttables"。
+
+*显示路由表信息：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ ip route show
+default via 192.168.1.1 dev wlan0  proto static 
+192.168.1.0/24 dev wlan0  proto kernel  scope link  src 192.168.1.100  metric 2 
+这里，默认显示main的路由表信息，也就是route命令显示的路由表。
+
+*显示指定路由表信息：
+quietheart@quietheart-ThinkPad-E420:~/mydoc/tmp/command_stud$ ip route list table local
+broadcast 127.0.0.0 dev lo  proto kernel  scope link  src 127.0.0.1
+local 127.0.0.0/8 dev lo  proto kernel  scope host  src 127.0.0.1
+local 127.0.0.1 dev lo  proto kernel  scope host  src 127.0.0.1
+broadcast 127.255.255.255 dev lo  proto kernel  scope link  src 127.0.0.1
+broadcast 192.168.1.0 dev wlan0  proto kernel  scope link  src 192.168.1.100
+local 192.168.1.100 dev wlan0  proto kernel  scope host  src 192.168.1.100
+broadcast 192.168.1.255 dev wlan0  proto kernel  scope link  src 192.168.1.100
+
+*策略路由
+这里通过实例来描述我们的策略路由相关操作，具体可参见route.c代码。
+设置命令：
+# ip rule delete from 192.168.0.216
+删除规则，规则包含"from 192.168.0.216"。
+
+# ip rule delete from 192.168.0.109
+
+# ip route flush table main
+清空main路由表。
+
+# ip route flush table 200
+清空自定义的200号路由表。
+
+# ip route flush table 201
+
+# ip route flush cache
+对之前所有路由设置，立即生效。
+
+# ip route add 192.168.0.0/24 dev eth0 table 200
+为路由表200添加有一条路由，即送往192.168.0.0/24网的包发至eth0网口。
+
+# ip route add 192.168.0.0/24 dev ra0 table 201
+
+# ip rule add from 192.168.0.216 table 200
+添加路由策略，所有来自192.168.0.216的包都通过200路由表匹配（若无，则通过main和default表匹配）。
+
+# ip rule add from 192.168.0.109 table 201
+
+# ip route flush cache
+
+# route add -net 192.168.0.0/24 dev ra0
+# route add -net 192.168.0.0/24 dev eth0
+# route add default gw 192.168.0.1 dev eth0
+通过route命令向main表添加路由，其实直接用ip命令也行。
+
+
+# ip rule list
+0:      from all lookup local 
+32764:  from 192.168.0.109 lookup 201 
+32765:  from 192.168.0.216 lookup 200 
+32766:  from all lookup main 
+32767:  from all lookup default 
+查看所有规则设置，规则的优先级小的靠前，（即由上到下依次进行）， 找到匹配的路由则进入，无论是否可达目的，找不到则找下一条规则对应路由直至匹配。
+
+

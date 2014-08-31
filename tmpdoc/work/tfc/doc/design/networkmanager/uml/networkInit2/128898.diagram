@@ -1,0 +1,53 @@
+format 74
+
+activitynodecanvas 128002 activitynode_ref 128002 // initial_node
+  xyz 215 94 2010
+end
+activityactioncanvas 128130 activityaction_ref 128002 // activity action GetNetWorkPara
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 164 140 2010 119 59
+end
+activitycanvas 128770 activity_ref 128130 // InitNetWork
+  show_infonote default drawing_language default show_stereotype_properties default
+  xyzwh 39 65 2005 801 541
+end
+activityactioncanvas 129026 activityaction_ref 128130 // activity action InitNetWorkCfg
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 168 221 2010 109 61
+end
+activityactioncanvas 130946 activityaction_ref 128514 // activity action SetNetConfig
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 173 303 2010 101 61
+end
+activityactioncanvas 133890 activityaction_ref 135426 // activity action CheckNetStatus
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 165 399 2010 127 63
+end
+activitynodecanvas 134658 activitynode_ref 135170 // activity_final
+  xyz 209 500 2010
+end
+note 135298 "从配置文件中读取网络参数     "
+  xyzwh 414 80 2010 79 75
+note 136066 "根据参数设置网络
+(ip,gateway,netmask)"
+  xyzwh 632 35 2010 137 55
+flowcanvas 130690 flow_ref 128514 // <flow>
+  
+  from ref 128130 z 2011 to ref 129026
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134914 flow_ref 136450 // basic network config
+  decenter_end 481
+  
+  from ref 128002 z 2011 label "basic network config" xyz 168 76 2011 to ref 128130
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 135426 -_-_
+  from ref 135298 z 2011 to ref 128130
+line 135682 -_-_
+  from ref 129026 z 2011 to ref 135298
+end
