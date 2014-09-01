@@ -26,7 +26,7 @@ repo init可以被执行多次，如果没有参数，则从上游获取新的�
 
 命令repo init 主要完成如下操作：
 *完成repo工具的完整下载，执行的repo脚本只是使用repo库之前的引导程序。
-初始化之时它会将repo.git库克隆到当前.repo/repo目录下，之后将控制权转给其中的repo/main.py继续完成初始化工作。
+初始化之时它会将repo.git库克隆到当前.repo/repo目录下，之后将控制权转给其中的repo/main.py继续完成初始化工作，这里.repo/repo/repo为新的repo初始化脚本。
 *克隆清单库manifest.git (地址来自于-u参数)到.repo/manifest.git中，本地清单内容在.repo/manifests中。
 repo/manifest.xml只是符号链接，它指向相应选择的清单，默认是.repo/manifests/default.xml;如果manifests中有多个xml文件，repo init 可以通过-m任意选择其中一个，默认选择是default.xml;
 *询问用户的姓名邮件地址，如果与默认的不同则存于.repo/manifest.git/config中。
