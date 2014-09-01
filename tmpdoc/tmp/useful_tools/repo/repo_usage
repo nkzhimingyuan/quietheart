@@ -36,9 +36,9 @@ repo/manifest.xml只是符号链接，它指向相应选择的清单，默认是
 	mirror=true
 
 综上，进行repo init之后，我们会得到一个.repo目录，目录中的内容大致如下：
-.repo/repo: 完成repo工具库，repo引导程序下载完这个repo工具库后，将后续的初始化工作交由到这里。
-.repo/manifests.git: repo清单文件库，可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本，清单文件以xml格式组织，描述该项目所包含子项目git库。
-.repo/manifests: 当前使用的清单库中的工作分支，其中的xml文件就描述上述所说的项目所包含的所有子项目git库。
+*.repo/repo: 完成repo工具库，repo引导程序下载完这个repo工具库后，将后续的初始化工作交由到这里。
+*.repo/manifests.git: repo清单文件库，可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本，清单文件以xml格式组织，描述该项目所包含子项目git库。
+*.repo/manifests: 当前使用的清单库中的工作分支，其中的xml文件就描述上述所说的项目所包含的所有子项目git库。
 大致如下：
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
@@ -62,7 +62,8 @@ remote元素，定义了名为origin的远程版本库，其库的基址为ssh:/
 default元素，设置各个项目默认远程版本库为origin，默认的的分支为refs/for/branch1。当然各个项目(project元素)还可以定义自己的remote和revision覆盖默认的配置.
 project元素，用于定义一个项目，path属性表示在工作区克隆的位置，name属性表示该项目的远程版本库的相对路径
 project元素的子元素copyfile，定义了项目克隆后的一个附件动作，从src拷贝文件到dest
-.repo/manifest.xml: 一个符号连接，指向.repo/manifests/default.xml，描述当前所处项目的清单文件。
+*.repo/manifest.xml: 一个符号连接，指向.repo/manifests/default.xml，描述当前所处项目的清单文件。
+*.repo/projects：repo脚本所管理的所有git项目库。
 建立镜像之后，可以通过自己添加manifest文件或者为清单库添加分支，来建立自己的项目集合。
 
 例如：
