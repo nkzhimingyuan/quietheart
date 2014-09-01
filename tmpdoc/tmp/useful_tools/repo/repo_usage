@@ -125,6 +125,7 @@ $vim ...
 $git add .
 $git commit -m 'xxx'
 $git push origin/project HEAD:refs/for/branch1
+但是如果简单的使用:$git checkout -b branch1这样的命令，那么得到的分支就是以当前的分支为基准，而不是以远端的branch1（或repo的默认分支）为基准的了。
 
 =============待整理
 repo status
