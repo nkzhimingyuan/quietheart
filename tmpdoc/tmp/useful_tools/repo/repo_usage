@@ -98,13 +98,14 @@ git rebase origin/branch
 例如：
 *按照清单库对其中所有项目进行同步/克隆：
 $repo sync
+这相当于对所有remote执行fetch+rebase,而不是像pull那样执行fetch+merge，不用merge而用rebase是因为merge之后历史复杂，而rebase之后历史简单。
 
 *选择清单库中的一个项目进行同步/克隆:
 $repo sync platform/build
 
 
 repo start  <newbranchname> [--all | <project>…]
-刚克隆下来的代码是没有分支的,repo start实际是对git checkout –b 命令的封装。 为指定的项目或所有项目（若使用—all参数），以清单文件中为设定的分支，创建特性分支。这条指令与git checkout –b 还是有很大的区别的，git checkout –b 是在当前所在的分支的基础上创建特性分支，而repo start是在清单文件设定分支的基础上创建特性分支。假设清单文件设定的基础分支是branch1，我们在一个自建分支b2上修改提交，然后用repo start创建一个分支b3，发现将会切换到b3，并且b2上的修改日志没有。即使我们自建的b2分支（通过checkout -b 或repo start方式创建）其名称也是branch1，也有同样的现象。
+刚克隆下来的代码是没有分支的,repo start实际是对git checkout –b 命令的封装。 为指定的项目或所有项目（若使用—all参数），以清单文件中为设定的分支，创建特性分支。这条指令与git checkout –b 还是有很大的区别的，git checkout –b 是在当前所在的分支的基础上创建特性分支，而repo start是在清单文件设定分支的基础上创建特性分支(相当于“git checkout -b <newbranchname> <清单文件设定的分支>”)。假设清单文件设定的基础分支是branch1，我们在一个自建分支b2上修改提交，然后用repo start创建一个分支b3，发现将会切换到b3，并且b2上的修改日志没有。即使我们自建的b2分支（通过checkout -b 或repo start方式创建）其名称也是branch1，也有同样的现象。
 
 例如：
 *在清单文件设定分支的基础上，为所有被管理的git项目创建stable特定分支：
@@ -127,13 +128,141 @@ $git commit -m 'xxx'
 $git push origin/project HEAD:refs/for/branch1
 但是如果简单的使用:$git checkout -b branch1这样的命令，那么得到的分支就是以当前的分支为基准，而不是以远端的branch1（或repo的默认分支）为基准的了。
 
+
+repo branches [<project>...]
+通过读取.git/refs目录下的引用，来获取各个项目的分支列表并汇总显示。
+输出类似：
+*P nocolor | in repo 
+   repo2 | 
+对于其输出，
+第一个字段显示分支的状态：是否当前分支，分支是否发布到代码审核服务器上？
+第一个字母若显示星号（*），含义是此分支为当前分支
+第二个字母若为大写字母P，则含义是分支的所有提交都发布到代码审核服务器上了。
+第二个字母若为小写字母p，则含义是只有部分提交被发布到代码审核服务器上。
+若不显示P或p，则表明分支尚未发布。
+第二个字段为分支名。
+第三个字段为以竖线（|）开始的字符串，表示该分支存在于哪些项目中。可能如下：
+  in all projects 
+该分支处于所有项目中。
+  in project1 project2 
+该分支只在特定项目中定义。如：project1、project2。
+  not in project1 
+该分支不存在于这些项目中。即除了project1 项目外，其他项目都包含此分支。
+
+例如：
+*查看当前repo库所有项目分支情况：
+repo branches
+*  branchr1 | not in:
+                                   project1
+                                   project2
+   master                    | in project3, project4
+
+
+repo status [<project>...]
+repo status 子命令实际上是对  git diff-index、git diff-files  命令的封装，同时显
+示暂存区的状态和本地文件修改的状态。
+输出类似：
+project repo/ branch devwork 
+-m subcmds/status.py 
+... 
+上面的示例输出显示了repo 项目的devwork 分支的修改状态。
+ 每个小节的首行显示项目的名称，以及所在分支的名称。
+ 之后显示该项目中文件的变更状态。头两个字母显示变更状态，后面显示文件名或其他变
+更信息。
+ 第一个字母表示暂存区的文件修改状态。其实是  git-diff-index  命令输出中的状态标识，用大写显示（即index和repository的比较）。
+  -：没有改变
+  A：添加（不在HEAD中，在暂存区）
+  M：修改（在HEAD中，在暂存区，内容不同）
+  D：删除（在HEAD中，不在暂存区）
+  R：重命名（不在HEAD中，在暂存区，路径修改）
+  C：拷贝（不在HEAD中，在暂存区，从其他文件拷贝）
+  T：文件状态改变（在HEAD中，在暂存区，内容相同）
+  U：未合并，需要冲突解决
+ 第二个字母表示工作区文件的更改状态。其实是  git-diff-files  命令输出中的状态标识，用小写显示。（即工作区和index的比较）
+  -：新/未知（不在暂存区，在工作区）
+  m：修改（在暂存区，在工作区，被修改）
+  d：删除（在暂存区，不在工作区）
+ 两个表示状态的字母后面，显示文件名信息。如果有文件重命名还会显示改变前后的文件
+名及文件的相似度。
+
+
+
+repo forall [<project>…] –c <command>
+迭代器，可以在所有指定的项目中执行同一个shell指令
+ Options：
+-c:后面所带的参数着是shell指令
+-p:在shell指令输出之前列出项目名称
+-v:列出执行shell指令输出的错误信息
+ 其它环境变量：
+REPO_PROJECT:指定项目的名称
+REPO_PATH:指定项目在工作区的相对路径
+REPO_REMOTE:指定项目远程仓库的名称
+REPO_LREV:指定项目最后一次提交服务器仓库对应的哈希值
+REPO_RREV:指定项目在克隆时的指定分支，manifest里的revision属性
+ 另外，如果-c后面所带的shell指令中有上述环境变量，则需要用单引号把shell指令括起来。
+
+*显示所有项目在工作区的相对路径：
+$repo forall -c 'echo $REPO_PATH'
+
+*给所有项目大标签：
+$repo forall –c git tag crane-stable-1.6
+
+*引用项目环境变量添加远程库：
+$repo forall -c 'git remote add korg ssh://xiong@172.16.31/$REPO_PROJECT.git'
+
+
 =============待整理
-repo status
+repo checkout <branch name> [<project>...]
+是对git checkout的封装，用于检出之前由repo start创建的分支。
+
+
+   
+
+repo upload [--re --cc] {[<project>]... | --replace <project>} 
+参数： 
+-h, --help  显示帮助信息。 
+-t  发送本地分支名称到 Gerrit 代码审核服务器。 
+--replace  发送此分支的更新补丁集。注意使用该参数，只能指定一个项
+目。 
+--re=REVIEWERS, --reviewers=REVIEWERS 
+要求由指定的人员进行审核。 
+--cc=CC  同时发送通知到如下邮件地址。
+通过repo upload 命令在代码审查服务器上提交了一个修订集，会得到一个修订号。 关于此次修订的相关讨论会发送到提交者的邮箱中。如果修订集有误没有通过审核，可以重
+新修改代码，再次向代码审核服务器上传修订集。
+一个修订集修改后再次上传，如果修订集的ID 不变是非常有用的，因为这样相关的修订集
+都在代码审核服务器的同一个界面中显示。
+在执行  repo upload  时会弹出一个编辑界面，提示在方括号中输入修订集编号，否则会在
+代码审查服务器上创建新的ID。有一个办法可以不用手工输入修订集，如下：
+repo upload --replace project_name 
+当使用  --replace  参数后，repo 会检查本地版本库名为
+refs/published/branch_name  的特殊引用（上一次提交的修订），获得其对应的提交SHA1
+哈希值。然后在代码审核服务器的 refs/changes/  命名空间下的特殊引用中寻找和提交SHA1
+哈希值匹配的引用，找到的匹配引用其名称中就所包含有变更集ID，直接用此变更集ID作为新的
+变更集ID提交到代码审核服务器。
+
+举例：
+
+
+
+
+
+
+
+repo prune [<project>...]
+repo prune  子命令实际上是对  git branch -d  命令的封装，该命令用于扫描项目的各
+个分支，并删除已经合并的分支。
+
+ repo status
 repo checkout
 repo branches
 repo diff
 repo stage
 repo upload
+
+repo forall
+repo prune
+
+repo工作流：
 
 
 

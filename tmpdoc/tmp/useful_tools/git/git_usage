@@ -1031,6 +1031,8 @@ remote,distribute,directory,snapshot,repository,fast-forward
 
 
 git diff
+git diff-index
+git diff-files
 
 git apply
 
