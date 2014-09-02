@@ -84,7 +84,7 @@ project元素的子元素copyfile，定义了项目克隆后的一个附件动�
 
 *指定清单库的某个分支：
 repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
-注意这里分支是指manifest库的分支，而不是其清单文件管理的各个git项目的分支。manifest库的不同分支里清单文件内容有所不同，里面可能会指定不同的git项目集合。当然有时也可在同一个分支内用不同的清单文件指定不同的git项目集合。而一个清单文件中，有一个字段设定了默认的分支，这个分支指定了其管理的所有git项目的默认分支。使用repo sync之时，所有项目不在任何分支中，可以用repo start 来为清单文件中的指定项目或者所有项目创建基于这个默认分支的特定分支（最好名字不要与默认分支名一样），具体可参见repo start。
+注意这里分支是指manifest库的分支，而不是其清单文件管理的各个git项目的分支。manifest库的不同分支里清单文件内容有所不同，里面可能会指定不同的git项目集合。当然有时也可在同一个分支内用不同的清单文件指定不同的git项目集合。而一个清单文件中，有一个字段设定了默认的分支，这个分支指定了其管理的所有git项目的默认分支。使用repo sync之时，所有项目不在任何分支中，可以用repo start 来为清单文件中的指定项目或者所有项目创建基于这个默认分支的特定分支，具体可参见repo start。
 
 
 repo sync [<project>…]
@@ -210,15 +210,40 @@ $repo forall –c git tag crane-stable-1.6
 *引用项目环境变量添加远程库：
 $repo forall -c 'git remote add korg ssh://xiong@172.16.31/$REPO_PROJECT.git'
 
+*对所有git项目内容进行reset：
+$repo forall -c git reset --hard HEAD
 
 =============待整理
 repo checkout <branch name> [<project>...]
 是对git checkout的封装，用于检出之前由repo start创建的分支。
 
 
-   
+repo manifest
+显示manifest文件的内容   
+
+repo info [-dl] [-o [-b]] [<project>...]
+获取清单分支，当前分支，和未合并分支的信息。
+
+例如：
+*获取当前项目的信息：
+$repo info
+输出类似：
+Manifest merge branch: tpvision/2k15_mtk_andL_fb4
+Manifest groups: all,-notdefault
+----------------------------
+Project: device/tpvision/tvsoc/tvsoc_mtk
+Mount path: /home/miracle.lv/androidLRepo/mtk-5593_p4/device/tpvision/tvsoc/tvsoc_mtk
+Current revision: tpvision/2k15_mtk_andL_fb4
+Local Branches: 1 [2k15_mtk_andL_fb4]
+----------------------------
+
+
+repo help
+获取帮助信息
+
 
 repo upload [--re --cc] {[<project>]... | --replace <project>} 
+这个命令类似git中的push，将你的修改推送至gerrit中。
 参数： 
 -h, --help  显示帮助信息。 
 -t  发送本地分支名称到 Gerrit 代码审核服务器。 
@@ -241,7 +266,17 @@ refs/published/branch_name  的特殊引用（上一次提交的修订），获�
 变更集ID提交到代码审核服务器。
 
 举例：
-
+假设修改好当前目录项目的内容之后进行：
+$git add .
+$git commit -m 'xxx.'
+下一步将上传至gerrit进行review：
+$git repo upload .
+这样的效果和git push HEAD:refs/for/xxx一样。使用git push的方式比较直接，能够直接指定相应的push参数，repo upload会将其参数也封装。具体要推送的远端分支，在gerrit上一般是：refs/for/xxx，这里xxx就是manifest.xml中指定的默认分支名称。
+假设review出错，需要改正，改正之后再：
+$git add .
+$git commit --amend
+$repo upload --replace
+注意，有些upload命令没有--replace选项了，提交之后也一般都在原来的change id上面。
 
 
 
@@ -263,6 +298,44 @@ repo forall
 repo prune
 
 repo工作流：
+
+
+repo常用工作流程：
+(1)gitserver->local:
+$repo init
+$repo sync
+从git服务器下载最新代码将本地工作目录更新。
+
+(2)local working
+$repo start xxx
+$vim xxx
+$git add xxx
+$git status xxx
+$git commit xxx
+$repo status xxx
+以上为本地开发工作大致的过程。
+
+(3)local->review server
+$repo upload xxx
+通过上述命令，将代码上传至reviewer（一般是gerrit）服务器，功能类似git push。
+
+(3.1)review pass
+如果review通过，那么进行第（4）步。
+
+(3.2)review reject
+$vim xxx
+$git add xxx
+$git commit --amend xxx
+$repo upload --replace
+如果review失败，那么进行前面几步之后，再进入(3.1)或(3.2)的执行过程。
+
+(4)reviewer->git server
+review通过之后，reviewer会将提交的change set合并到git服务器。
+我们可以继续在本分支上，进行（2）之后的过程，继续开发。
+
+或者如果完成本分支开发，可以运行如下，删除当前分支：
+$repo rune xxx
+
 
 
 

@@ -1,0 +1,10 @@
+write user [tty]
+给一个用户发送消息。
+
+*发送消息：
+$write user1 /dev/pts/20 <testmsg
+这样，会将文件testmsg中的内容发送给登录在/dev/pts/20终端的user1用户，如果不用'<testmsg'重定向，那么需要自己输入消息，然后control c结束输入，期间换行的时候，另一端同时会显示你发送的消息。
+另一端期间的输出类似如下：
+Message from quietheart@cnszs2509 on pts/15 at 10:07 ...
+xxxxx
+EOF

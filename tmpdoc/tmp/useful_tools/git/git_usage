@@ -69,6 +69,10 @@ $git checkout -b <branch name>
 另外，如果是从remote获取的，本地无br1分支，那么可以用：git checkout -b br1 origin/xx/br1
 
 
+*创建指定起点的分支：
+$git checkout -b <branch name> <start point>
+这里，start point指定分支是基于谁来创建的，可以是分支名，也可以是提交名。如果没有这个参数，默认以当前分支的head为分支起点。
+
 
 *修改分支名称：
 
@@ -549,6 +553,8 @@ git status?
 
 git status <path>
 
+git add -u
+添加所有被tracked的文件到stage，未被tracked的文件不被添加，被tracked但在工作区被delete的文件也在index中被delete。
 
 
 git stash？
