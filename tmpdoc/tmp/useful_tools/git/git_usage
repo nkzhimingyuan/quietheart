@@ -229,6 +229,34 @@ $git tag -d v1.1
 默认情况下，’git push’命令不会将标签上传到远程服务器上。为了共享这些标签，你必须在’git push’命令后明确添加-tags选项；git fetch会将远端tags下载。
 **
 
+**git status
+关于文件状态如下：
+tracked & changed：文件在index中有所记录，包含一些没有存于index的修改，提交时只会提交index中的内容。
+tracked & updated：文件在index中有所记录，其相应修改也缓存在index中，提交时会将其缓存内容提交至库中。
+untracked：文件在index中没有记录，其修改肯定没有存于index中。
+
+git目录的区域：
+a、working directory：工作区目录，也就是我们工作的代码目录。
+b、staging area：缓存区，即我们的修改，并且这些修改还未提交。
+c、repository：存储库区，即提交了修改后的内容。
+其中b、c是处于git目录下。也就是我们项目整个git目录中的.git目录下。
+还有说法：
+snap shot：当前工作目录中内容的快照，包含你的修改。
+index：包含添加至staging area中但是还未提交至repository的修改内容，以及已经添加至repository的index。
+repository：同上，存放最终提交修改的库，包含各个提交版本的库（commit）。
+如下图：
+working directory---(git add)--->staging area---(git commit)--->git directory(repository)
+git directory(repository)---(git checkout)--->working directory
+
+*查看整个工作区的文件状态：
+$git status
+列出被跟踪但是有未被添加至index（即staged）的内容的文件（ 即not updated），未被跟踪的文件(not stracked)，以及添加至index待提交的内容的状况。
+
+*查看某个目录的状态：
+git status <path>
+**
+
+
 未整理：
 ========================================================
 git clone
@@ -283,6 +311,7 @@ git diff
 默认列出未被添加至index的内容与index中的内容之间的区别（index中的内容可能是被提交的也可能还有未被提交的）。
 选项--cached列出添加至index的内容与已经提交到库中的index内容之间的区别。
 也可以两个commit为参数，对比两个commit之间的不同。git diff --stat <commit1> <commit2>可以更简洁。
+git difftool -t vimdiff <commit>{0,2}
 
 比较两个分支
 git diff dev1 dev2
@@ -290,11 +319,12 @@ git diff dev1 dev2
 比较两个分支中单个文件的区别
 git diff dev1 dev2 main.c
 
-git status?
-列出被跟踪但是有未被添加至index（即staged）的内容的文件（ 即not updated），未被跟踪的文件(not stracked)，以及添加至index待提交的内容的状况。
-git status <path>
 
 
+git remote
+
+git stash
+会将你的工作目录变成最后提交的干净目录。而你做的本地修改以及index等脏状态会暂存到一个地方，当然，没有被tracked的文件不会清除掉，可以用git stash list查看。
 
 原理
 存储
@@ -302,8 +332,6 @@ git status <path>
 操作
 
 
-git stash？
-会将你的工作目录变成最后提交的干净目录。而你做的本地修改以及index等脏状态会暂存到一个地方，当然，没有被tracked的文件不会清除掉，可以用git stash list查看。
 
 冲突的解决：
 git merge产生冲突之后：
@@ -319,235 +347,104 @@ git pull
 
 
 在linux 下生成的sshkey如果拿到windows下用，那么在windows下将其privatekey转换成putty的(用puttygen)，然后在git的配置文件中，指向这个文件。
-git remote
-git tag
-git difftool -t vimdiff <commit>{0,2}
 
-文件状态：
-tracked & changed：文件在index中有所记录，包含一些没有存于index的修改，提交时只会提交index中的内容。
-tracked & updated：文件在index中有所记录，其相应修改也缓存在index中，提交时会将其缓存内容提交至库中。
-untracked：文件在index中没有记录，其修改肯定没有存于index中。
 
-git目录的区域：
-a、working directory：工作区目录，也就是我们工作的代码目录。
-b、staging area：缓存区，即我们的修改，并且这些修改还未提交。
-c、repository：存储库区，即提交了修改后的内容。
-其中b、c是处于git目录下。也就是我们项目整个git目录中的.git目录下。
-还有说法：
-snap shot：当前工作目录中内容的快照，包含你的修改。
-index：包含添加至staging area中但是还未提交至repository的修改内容，以及已经添加至repository的index。
-repository：同上，存放最终提交修改的库，包含各个提交版本的库（commit）。
-如下图：
-working directory---(git add)--->staging area---(git commit)--->git directory(repository)
-git directory(repository)---(git checkout)--->working directory
 
 git reset [--<mode>] [<commit>]
-
 将当前分支的HEAD指向参数<commit>对应的提交版本，同时根据mode选项更新index和working tree。提示：对diff和status子命令的理解会有助于此处的理解。
-
 选项--<mode>可能取值及其含义：
-
-           --soft
-
+    --soft
 不更新index中的内容，也不更新working tree中的内容，只更新它们的状态，但是要求它们的状态是有序的”好状态“。执行之后，你的所有改变的文件内容都不会变化，只是index中有些内容的状态变成待提交。例如：假设我们已经提交好了v1,v2,v3之后，又修改了一些东西但是没有添加至index，利用"git reset --soft v2"之后，结果是repository中的head变成了v2，v2到v3的改动仍旧在index中，working tree中的文件内容不变，使用"git status"会发现文件有待提交的内容，以及没有被添加至index中的内容。使用"git diff"会看见没有被添加的内容仍旧是v3之后被修改的内容，使用"git diff -cached"会看见待提交的内容是v2到v3之间的改动。
-
-
-
-           --mixed
-
+    --mixed
 将index进行reset（也就是说，被修改的文件仍然保存，但是由于不存放在index中了所以不会被标记为待提交的内容），同时会报告什么不会被updated。例如：假设我们已经提交好了v1,v2,v3之后，利用"git reset v2"之后，结果是repository中的head变成了v2，v2到v3的改动将会被从index中移除但是working tree中的文件内容不变，使用git status会发现文件状态是被修改了，但是由于修改没有在index所以不会被提交，使用git diff会看见没有被添加到index的修改就是v2到v3的修改（以及提交v3之后本地发生但是没有被添加到index中的修改）。
-
-
-
-           --hard
-
+    --hard
 将工作目录和index与将要被reset的<commit id>严格匹配。所有working tree中被tracked的文件，以及index中的内容都被强制变成<commit id>中的内容，<commit id>之后的修改全部被清空。例如：假设我们已经提交好了v1,v2,v3之后，又修改了一些东西并且添加了一些文件但是没有添加至index，利用"git reset --hard v2"之后，repository中的head变成了v2，untracked文件依然存在，被tracked的文件的内容以及index中的内容全部变成<commit id>时的内容，git diff和git diff --cached没有任何输出。
-
-
-
-           --merge
-
+    --merge
                Resets the index to match the tree recorded by the named commit, and updates the files that are different between the named
-
                commit and the current commit in the working tree.
-
-
-
-           --keep
-
-               Reset the index to the given commit, keeping local changes in the working tree since the current commit, while updating working
-
+    --keep
+    Reset the index to the given commit, keeping local changes in the working tree since the current commit, while updating working
                tree files without local changes to what appears in the given commit. If a file that is different between the current commit and
-
                the given commit has local changes, reset is aborted.
-
-
-
        If you want to undo a commit other than the latest on a branch, git-revert(1) is your friend.
 
 
 
-
-
-
-
 man gittutorial
-
-
-
 解决冲突，最好遵循在merge保证库中内容是提交好的状态，没有workarea和index中没有脏数据。减少冲突解决的复杂度。
-
 否则解决冲突注意四个方面：
-
 工作目录的修改
-
 暂存区的修改
-
 merge来的修改
-
 Merge前的修改
-
 遵循原则，则只需注意两个方面：
-
 merge来的修改
-
 Merge前的修改
-
 参考：http://oldratlee.com/post/2013-02-17/git-conflict
 
 使用stash解决冲突：
-
 假设本地修改了一些东西，没有提交，也没有add。
-
 当git pull之后会发生冲突，会自动对git pull中的merge进行abort（但是远端的fetch保留下来了）。之后查看git diff和git diff --cached内容和pull之前一样。
-
 为合并并解决冲突，需要：
-
 (1)git stash
-
 这样会将你的工作内容暂存，尽管没有add，但是也会暂存下来，暂存之后，你的工作目录状态处于最后一次提交之后修改之前。
 
 （2）git pull
-
 stash之后，如果最后一次提交不冲突，那么就不冲突，直接进行下面。
-
 如果冲突，那么会产生冲突标记，解决冲突，去掉冲突标记，并add上解决好的冲突文件之后，进行下一步。
-
 所以直接pull。
 
 （3）git stash list
-
 查看刚才暂存的区域名称，一般如果没有其它的stash，名称为stash@{0}。
 
 （4）git stash pop stash@{0}
-
 这样会自动对你的内容合并（merge）？
-
 如果没有冲突，没有提交过：
-
 没有冲突，提交过：
-
 如果有冲突，则通过git status可以看到相应文件出现：both modified等之类的冲突提示。
-
 如果有时候不允许pop，可以用：git stash show -p | git apply 尝试一下，意思是先用show -p命令将stash中的内容显示为补丁，然后用git apply将补丁应用。
 
 （5）解决冲突
-
 修改冲突的文件，去掉冲突标记，最后add，commit。
 
 
-
-
-
-“Fast forward”：当在master上创建并切换到新的分支修改后，切换回master分支进行merge（此时master没有做过其它改动），那么会合并就是"Fast forward"的。即：由于当前 master 分支所在的提交对象是要并入的 hotfix分支的直接上游，Git 只需把 master 分支指针直接右移。换句话说，如果顺着一个分支走下去可以到达另一个分支的话，那么 Git 在合并两者时，只会简单地把指针右移，因为这种单线的历史分支不存在任何需要解决的分歧，所以这种合并过程可以称为快进（Fast forward）。
-
-
-
+“Fast forward”： 当在master上创建并切换到新的分支修改后，切换回master分支进行merge（此时master没有做过其它改动），那么会合并就是"Fast forward"的。即：由于当前 master 分支所在的提交对象是要并入的 hotfix分支的直接上游，Git 只需把 master 分支指针直接右移。换句话说，如果顺着一个分支走下去可以到达另一个分支的话，那么 Git 在合并两者时，只会简单地把指针右移，因为这种单线的历史分支不存在任何需要解决的分歧，所以这种合并过程可以称为快进（Fast forward）。
 
 9.将dev1的分支merge到dev2分支
 在dev2分支下，git merge --commit dev1
-
 10.找到dev2在master分支上的commitID
 git merge-base dev2 master
-
 会显示dev2和master两个分支的共同的commitID
 
-
-
-
-
-
 Git 自动维护几个symrefs ，在任何时候都可以标识某次提交。
-
 HEAD
-
 标识当前分支的最后一次提交，当你变换分支，HEAD也换成新分支的最后一次提交。
 ORIG_HEAD
-
 某些操作，如执行merge ，reset时，ORIG_HEAD 记住了变更时的版本，你可以用ORIG_HEAD去恢复到上一次版本。
 FETCH_HEAD
-
-
 MERGE_HEAD
 
-
-
 git pull
-
 对merge的配置 
-
 =git fetch <remote> + git merge <remotebranch>
-
 如果有--rebase，那么相当于：
-
 fetch + rebase
-
-
-
 将远端库中的修改合并到当前分支。这个是默认的模式，git pull是git fetch+git merge FETCH_HEAD的简易方式。
-
-
-
 更精确来说，git pull运行带有相应给定参数的git fetch，然后调用git merge将获取的分支头合并到当前分支。使用 --rebase选项，则使用git rebase来替代git merge。
-
-
-
 <repository>应当是远端库的名字，和传递给git-fetch的一样。<refspec>可以被命名为任意的远端引用（例如一个tag），或者是一系列具有相应远端跟踪分支的引用集合（例如refs/heads/:refs/remotes/origin/），但是，一般它经常是一个远端库中的分支名称。
-
-
-
 默认的<repository>和<branch>值来自"remote"和"merge"的对当前分支的配置，这个配置就像用git branch --track设置的一样。
-
-
-
 假设我们的当前分支是"master"并且有如下历史信息：
-
                           A---B---C master on origin
-
                         /
-
                D---E---F---G master
 
-
-
-"git pull"将会fetch并且replay远端分支自当前分支分歧依赖的修改（也就是E)，直到其当前基于master的提交（也就是C），同时记录器结果于一个新的提交，该提交以其两个父亲为名，附带用户指定的log信息：
-
+"git pull" 将会fetch并且replay远端分支自当前分支分歧依赖的修改（也就是E)，直到其当前基于master的提交（也就是C），同时记录器结果于一个新的提交，该提交以其两个父亲为名，附带用户指定的log信息：
                          A---B---C remotes/origin/master
-
                         /               \
-
                D---E---F---G---H master
-
-
-
 可以参考git-merge(1)了解详细信息，包括冲突和处理。
-
 在git 1.7.0或之后的版本中，取消一个冲突的合并使用git reset --merge。注意：在旧版本的git中运行git pull时，如果有未提交的改变，这样会导致你产生冲突时难以撤销。
-
 如果任何一个远端的修改覆盖了本地的未提交修改，merge过程将会被自动取消，同时工作目录不会被修改。一般来说，我们最好在pull或者stash之前让本地修改在一个合理的状况下。
-
-
-
 
 
        <repository>
