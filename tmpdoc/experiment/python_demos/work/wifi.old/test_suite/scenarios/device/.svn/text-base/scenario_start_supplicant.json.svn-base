@@ -1,8 +1,0 @@
-{
-	"name":"start_supplicant",
-	"vendor":"device:tate",
-	"type":{"name":"seq"},
-	"script":{"fname":"scenario_start_supplicant.py"},
-	"reporter":["success","fail"],
-	"description":"start supplicant"
-}

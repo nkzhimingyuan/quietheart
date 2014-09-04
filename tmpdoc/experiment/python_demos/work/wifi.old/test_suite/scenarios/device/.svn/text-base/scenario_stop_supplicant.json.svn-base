@@ -1,8 +1,0 @@
-{
-	"name":"stop_supplicant",
-	"vendor":"device:tate",
-	"type":{"name":"seq"},
-	"script":{"fname":"scenario_stop_supplicant.py"},
-	"reporter":["success","fail"],
-	"description":"stop supplicant"
-}

@@ -1,7 +1,0 @@
-{
-    "name":"set_radio_off",
-    "type":{"name":"seq"},
-    "script":{"fname":"scenario_set_radio_off.py"},
-    "reporter":["success","fail"],
-    "description":"set wireless radio off ap"
-}
