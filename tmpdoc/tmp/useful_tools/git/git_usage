@@ -167,6 +167,7 @@ man git-push
 ***
 
 **rebase的作用
+如果不进行rebase，那么使用git pull作用于已经有了提交的本地库，将会导致一个合并。rebase可以将本地修改置于pull之后，将历时简化，不会出现很多的分支。
 1、对于git pull，
 合并前：
           4-->6 (master)
@@ -294,6 +295,13 @@ git reset
 git revert
 用于对工作目录以前的提交之间的”逆操作“，工作目录应该是干净的，至HEAD的提交之后没有任何修改。
 
+git commit
+添加之后，git commit.
+
+*修改最近提交的log信息：
+git commit --amend
+这条命令对最新的提交可以修改其注释。修改之后，可以用git log发现，修改之前的commit id和之后的commit id不同了，但是不会因为--amend而导致新增一个commit。
+
 git checkout回退
 
 git checkout [--patch] [<tree-ish>] [--] <pathspec>...
@@ -325,6 +333,50 @@ git remote
 
 git stash
 会将你的工作目录变成最后提交的干净目录。而你做的本地修改以及index等脏状态会暂存到一个地方，当然，没有被tracked的文件不会清除掉，可以用git stash list查看。
+
+git rev-parse
+*查看当前目录所在的git工作库的顶层路径：
+$git rev-parse --show-toplevel
+如果当前目录是属于git工作目录之一，这条命令会显示当前git库工作目录顶层目录的路径（即包含.git的路径）。
+
+git config
+*打开配置文件手动编辑：
+$git config -e
+默认会打开当前.git/config文件进行编辑。
+
+*打开全局配置文件编辑：
+$git config -e --global
+会打开~/.gitconfig文件进行编辑。
+
+*打开系统配置文件编辑：
+$git config -e --system
+会打开/etc/gitconfig进行编辑。
+这三个配置文件(.git/config, ~/.gitconfig, /etc/gitconfig) 优先权由高到低，先出现的配置选项替换后出现的重名配置选项。
+
+*读取配置：
+$git config core.bare
+这里，git config读取ini文件的命令格式是："git config <section>.<key>"，该命令会显示名为core的section下bare的值。
+
+*更改配置：
+$git config core.bare false
+这里，git config更改ini文件的命令格式："git config <section>.<key> value"。这里设置bare选项为false。运行之后会看到如下：
+[core]
+bare = false。
+如果运行：git config a.b.c 1
+会看到文件中出现：
+[a "b"]
+c = 1
+
+*删除配置文件中的配置项：
+$git config --unset a.b.c
+
+*修改其他ini文件：
+$GIT_CONFIG=test.ini git config a.b.c 1
+这样会修改test.ini文件。
+
+*设置别名：
+$git config alias.ci "commit -s"
+这样设置之后，敲入"git ci"，其内部会识别成"git commit -s"。
 
 原理
 存储
