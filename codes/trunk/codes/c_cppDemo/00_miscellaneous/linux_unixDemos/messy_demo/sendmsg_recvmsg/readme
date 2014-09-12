@@ -1,0 +1,11 @@
+Test usage of sendmsg/recvmsg.
+
+Server is parent, client is child.
+*client send "request_pipe" to socket.
+*server recv "request_pipe" from socket.
+*server alloc pipe, and send pipe_fd back to client socket.
+*client recv pipe_fd from socket.
+*client send "request_data" to socket.
+*server recv "request_data" from socket.
+*server put "Server Data" to pipe which is mmap from shared_fd, and send back to client socket.
+*client get "Server Data" from pipe.

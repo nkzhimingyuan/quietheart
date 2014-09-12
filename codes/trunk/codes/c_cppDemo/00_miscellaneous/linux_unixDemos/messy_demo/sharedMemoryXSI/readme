@@ -1,0 +1,13 @@
+This example shows the simple use of XSI shared memory.
+
+Usage
+1.server start and wait to receive.
+$serv
+2.client sent to server and exist.
+$client
+server will receive client data and exist.
+
+Note
+as XSI IPC resource is system resource, it is not released if process don't release it before exit.
+we can use ipc tools to see and manage ipc resources.
+see man page of "ipcs ipcmk iprm" for more information.

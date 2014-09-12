@@ -1,0 +1,20 @@
+This example shows the simple use of Mmap shared memory.
+
+Usage
+*shared memory between parent&chile relationship process:start server and client as child with /dev/zero mmaped.
+$mmap1
+Then server wait , client send and exit, server received and print then exit.
+
+
+*shared memory between parent&chile relationship process:start server and client as child with anonymous mmap:
+$mmap2
+Then server wait , client send and exit, server received and print then exit.
+
+*shared memory between two processes:start server and client with a normal file:./mmap_shared mmap:
+$mmap3_serv
+$mmap3_client
+
+Note
+For two process have relationship, such as parent and child, We can only use mmap specific device file or anonymous mmap for  shared memory.
+We can use /dev/zero for mmap, or MAP_ANONYMOUS flag for mmap without file.
+For two any processes, we can use mmap shared memory only by mmap a normal file and we should ensure that the file size not small than the mmap size.

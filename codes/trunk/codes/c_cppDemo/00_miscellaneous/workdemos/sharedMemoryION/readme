@@ -1,0 +1,10 @@
+shared memory use ion on android device.
+
+*client send "request_shm" to socket.
+*server recv "request_shm" from socket.
+*server alloc shm, and send share_fd back to client socket.
+*client recv shared_fd from socket.
+*client send "request_data" to socket.
+*server recv "request_data" from socket.
+*server puts "Server Data" to shm which is mmap from shared_fd, and send "respose_data" to socket to tell client read data from shm.
+*client recv "response_data" from socket, and gets "Server Data" from shm.
