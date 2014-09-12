@@ -1,3 +1,6 @@
+**初始化操作
+git init [-q | --quiet] [--bare] [--template=<template_directory>] [--separate-git-dir <git dir>] [--shared[=<permissions>]] [directory]
+				 
 *创建纯库：
 $git init --bare
 创建一个git库，只有库的内容，没有.git目录（也就是说只创建一个库，这个库中没有工作代码，只供别的人工作clone用，如果没有--bare那么创建的目录中包含一个.git目录，.git目录的内容是库内容）。实践发现，分别用两个目录同样的内容用git init创建库，两个库是不同的库，就算提交注释一样，文件目录一样，其commit id也不一样。但是，clone出来之后，可以将.git/config中的源改成另外一个库，并且pull。所以，假设我们在机器A上git init --bare，在机器B上git init并且提交了代码，将A添加到B的remote中，在B进行push，这样机器A中之前的空库就有了B的提交内容。
@@ -5,8 +8,15 @@ $git init --bare
 *创建共享库：
 $git init --share
 创建的git库可以被人共享。
+**
 
-**分支操作
+**branch分支操作
+git branch [--color[=<when>] | --no-color] [-r | -a] [--list] [-v [--abbrev=<length> | --no-abbrev]] [(--merged | --no-merged | --contains) [<commit>]] [<pattern>...]
+git branch [--set-upstream | --track | --no-track] [-l] [-f] <branchname> [<start-point>]
+git branch (-m | -M) [<oldbranch>] <newbranch>
+git branch (-d | -D) [-r] <branchname>...
+git branch --edit-description [<branchname>]
+
 *查看本地分支：
 $git branch
 会输出本地分支，如：
@@ -28,6 +38,19 @@ $git branch -a
 *创建分支：
 $git branch <branch name>
 
+*修改分支名称：
+$git branch -m <old name> <new name>
+注意，不要有已有的分支名冲突。
+
+*基于远端分支创建相应的本地分支：
+$git branch -track origin/albert
+新版git不用-track选项，会根据远端分支名知道加上track选项，创建之后，相应的分支在本地创建，会与远端分支关联。这样pull会知道如何合并分支，以及获知各种其他远端跟踪的信息（如本地比远端多提交了几个版本等）。
+**
+
+**checkout分支操作
+git checkout [-q] [-f] [-m] [<branch>]
+git checkout [-q] [-f] [-m] [[-b|-B|--orphan] <new_branch>] [<start_point>]
+
 *开始一个无历史的新分支:
 $git checkout --orphan <branchname>
 创建一个孤儿分支，该分支上第一个提交历史没有任何父亲节点。这样可以开始一个新分支，但是又不会把很长很长的历史记录带进来，例如，你想在公众区域（开源）放置你的代码，但是又不想别人知道它的历史记录会用到这个。一般在孤儿分支中，如果你想创建一个完全无关的内容，那么第一步往往是把当前所有文件清空，这样这个分支就和其它分支没有任何关联了。
@@ -39,17 +62,10 @@ $git checkout -b <branch name>
 *创建指定起点的分支：
 $git checkout -b <branch name> <start point>
 这里，start point指定分支是基于谁来创建的，可以是分支名，也可以是提交名。如果没有这个参数，默认以当前分支的head为分支起点。
-
-*修改分支名称：
-$git branch -m <old name> <new name>
-注意，不要有已有的分支名冲突。
-
-*基于远端分支创建相应的本地分支：
-$git branch -track origin/albert
-新版git不用-track选项，会根据远端分支名知道加上track选项，创建之后，相应的分支在本地创建，会与远端分支关联。这样pull会知道如何合并分支，以及获知各种其他远端跟踪的信息（如本地比远端多提交了几个版本等）。
 **
 
-***git push [options] [<repository> [<refspec>...]]
+***push相关
+git push [options] [<repository> [<refspec>...]]
 **参数含义
 *<repository>:
 push操作的远端目标库。这个参数可以是一个url，或者远端名称，或被称为remote，参见后面remote相关的配置。
@@ -218,7 +234,7 @@ v1.4.2.4
 
 *为以前的提交创建一个标签：
 $git tag v1.1 2f5cff72102b47e7
-这样会为2f5cff72102b47e7这个提交创建一个轻量级的标签。
+这样会为2f5cff72102b47e7这个提交创建一个轻量级的标签。使用'git checkout'命令可以取出相应tag。
 
 *查看标签：
 $git show v1.1
@@ -260,13 +276,24 @@ git status <path>
 
 未整理：
 ========================================================
-git clone
-git clone --bare
-.git目录中包含了所有的内容，其实我们传输文件时只需要目录中有一个.git目录，然后git reset --hard就可恢复出head的内容。或者我们使用git clone --bare只clone其中的.git目录，其余内容可以用git reset --hard在本地还原。
-对于本地的git clone，其实默认做的硬链接，速度很快。使用git clone --bare xxx .git会瞬间将xxx直接clone到当前目录的.git形成裸库，通过git reset --hard恢复其内容。
+**git clone
+*复制库到本地：
+$git clone xxx
+这样会将xxx所指向的git库复制一份到本地。复制之后，本地包含两个部分：
+.git目录中包含库信息。
+.git外面的工作区。
+其实.git就包含了所有的内容，我们传输文件时只需要目录中有一个.git目录，然后git reset --hard就可恢复出head的内容。
 
-git difftool查看不同版本的代码如下：
-git difftool -t vimdiff ba70acc5 661a4d37 readme.txt
+*复制裸库，不含工作区：
+git clone --bare
+我们使用git clone --bare只clone其中的.git目录，其余内容可以用git reset --hard在本地还原。
+对于本地的git clone，其实默认做的硬链接，速度很快。使用git clone --bare xxx .git会瞬间将xxx直接clone到当前目录的.git形成裸库，通过git reset --hard恢复其内容。
+**
+
+**git difftool
+*git difftool查看不同版本的代码如下：
+$git difftool -t vimdiff ba70acc5 661a4d37 readme.txt
+**
 
 git rm
 *仅删除index中的内容，workspace中的内容不变：
@@ -294,6 +321,8 @@ git reset
 
 git revert
 用于对工作目录以前的提交之间的”逆操作“，工作目录应该是干净的，至HEAD的提交之后没有任何修改。
+
+git archive
 
 git commit
 添加之后，git commit.

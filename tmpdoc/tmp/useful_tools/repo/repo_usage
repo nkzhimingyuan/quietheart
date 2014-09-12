@@ -103,6 +103,13 @@ $repo sync
 *选择清单库中的一个项目进行同步/克隆:
 $repo sync platform/build
 
+*多个job同时进行：
+$repo sync -j 16
+类似make -j。
+
+*只对本地进行更新，不从远端fetch：
+$repo sync -l
+当前有了.repo，会从本地将项目进行sync，而不从远端进行fetch。如果此时你的工作目录下只有一个之前sync好的.repo目录，这个命令将会重新将代码从.repo检出到工作区。
 
 repo start  <newbranchname> [--all | <project>…]
 刚克隆下来的代码是没有分支的,repo start实际是对git checkout –b 命令的封装。 为指定的项目或所有项目（若使用—all参数），以清单文件中为设定的分支，创建特性分支。这条指令与git checkout –b 还是有很大的区别的，git checkout –b 是在当前所在的分支的基础上创建特性分支，而repo start是在清单文件设定分支的基础上创建特性分支(相当于“git checkout -b <newbranchname> <清单文件设定的分支>”)。假设清单文件设定的基础分支是branch1，我们在一个自建分支b2上修改提交，然后用repo start创建一个分支b3，发现将会切换到b3，并且b2上的修改日志没有。即使我们自建的b2分支（通过checkout -b 或repo start方式创建）其名称也是branch1，也有同样的现象。
@@ -211,7 +218,14 @@ $repo forall –c git tag crane-stable-1.6
 $repo forall -c 'git remote add korg ssh://xiong@172.16.31/$REPO_PROJECT.git'
 
 *对所有git项目内容进行reset：
-$repo forall -c git reset --hard HEAD
+$repo forall -c 'git reset --hard HEAD'
+
+*对所有git项目打成一个tag：
+$repo forall -c 'git tag v1.1'
+这在开发repo项目时，对一个特定发布版本进行tag时使用。
+
+*对于该repo项目，取出之前打上tag的版本：
+$repo forall -c 'git checkout v1.1'
 
 =============待整理
 repo checkout <branch name> [<project>...]
