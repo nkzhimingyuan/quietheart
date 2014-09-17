@@ -62,6 +62,16 @@ $git checkout -b <branch name>
 *创建指定起点的分支：
 $git checkout -b <branch name> <start point>
 这里，start point指定分支是基于谁来创建的，可以是分支名，也可以是提交名。如果没有这个参数，默认以当前分支的head为分支起点。
+
+*创建基于<tag_xxxx>的分支：
+$git checkout -b my_branch <tag_xxxx> 
+这样，会创建一个分支，该分支基于<tag_xxxx>。
+**
+
+**checkout回复操作
+*恢复之前的某次提交：
+$git checkout <commitid>
+这样，会将当前的HEAD指向<commitid>所处的提交，通过'git log'可发现，执行之后，log中commitid之后的提交消失了，但是如果记住<commitid>的话，可以将之前的HEAD回复，所以要注意checkout之后log无法找到之前的最新head。
 **
 
 ***push相关
@@ -315,6 +325,9 @@ git clean -f
 清除目录：
 git clean -d -f
 
+*清除时，不会忽略git配置应该忽略的文件：
+git clean -x -f
+
 git reset
 用于取消对工作目录的某些提交，或者未提交的修改。
 可以用"git reset HEAD <file...>"，但是不能用"git reset --hard HEAD <file...>"，--hard不能接路径。
@@ -412,6 +425,12 @@ $git config alias.ci "commit -s"
 分布式
 操作
 
+
+git commit
+今天面试一个人，发现了一个特殊的用法：
+修改已经跟踪的文件之后，可以不用add，直接：
+git commit -m 'xxx' <file>
+将其提交。但是没有跟踪的文件不能这样提交。
 
 
 冲突的解决：
