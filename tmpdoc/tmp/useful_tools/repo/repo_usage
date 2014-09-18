@@ -109,7 +109,7 @@ $repo sync -j 16
 
 *只对本地进行更新，不从远端fetch：
 $repo sync -l
-当前有了.repo，会从本地将项目进行sync，而不从远端进行fetch。如果此时你的工作目录下只有一个之前sync好的.repo目录，这个命令将会重新将代码从.repo检出到工作区。
+当前有了.repo，会从本地将项目进行sync，而不从远端进行fetch。如果此时你的工作目录下只有一个之前sync好的.repo目录，这个命令将会重新将代码从.repo检出到工作区。需要注意的是，.repo目录外面的所有工作区目录，虽然其内部有.git目录，但是实际这个.git中的内容其实是软链接，实际的内容存放在.repo/projects/xxx中，如果在工作区创建了一个分支test，然后回到.repo的父目录，然后删除除了.repo之外的所有文件之后，再'repo sync -l'，我们得到的新工作区中，仍然有刚才创建的分支test。
 
 repo start  <newbranchname> [--all | <project>…]
 刚克隆下来的代码是没有分支的,repo start实际是对git checkout –b 命令的封装。 为指定的项目或所有项目（若使用—all参数），以清单文件中为设定的分支，创建特性分支。这条指令与git checkout –b 还是有很大的区别的，git checkout –b 是在当前所在的分支的基础上创建特性分支，而repo start是在清单文件设定分支的基础上创建特性分支(相当于“git checkout -b <newbranchname> <清单文件设定的分支>”)。假设清单文件设定的基础分支是branch1，我们在一个自建分支b2上修改提交，然后用repo start创建一个分支b3，发现将会切换到b3，并且b2上的修改日志没有。即使我们自建的b2分支（通过checkout -b 或repo start方式创建）其名称也是branch1，也有同样的现象。
