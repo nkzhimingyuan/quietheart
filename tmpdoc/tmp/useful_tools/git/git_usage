@@ -283,6 +283,18 @@ $git status
 git status <path>
 **
 
+**git clean操作
+清除当前目录包括子目录下所有untracked的文件，也就是未被git版本控制的文件。默认不会对.gitignore中的内容进行清理。
+
+*清除文件：
+$git clean -f
+
+*清除目录和文件：
+$git clean -d -f
+
+*清除时，不会忽略git配置应该忽略的文件：
+$git clean -x -f
+**
 
 未整理：
 ========================================================
@@ -317,16 +329,6 @@ git add -u
 git add -A 将所有新增或者删除的文件加入暂存区。
 git add -p可以对添加的内容进行更细的定制，这里省略。
 
-git  clean
-清除当前目录包括子目录下所有untracked的文件，也就是未被git版本控制的文件。默认不会对.gitignore中的内容进行清理。
-清除文件：
-git clean -f
-
-清除目录：
-git clean -d -f
-
-*清除时，不会忽略git配置应该忽略的文件：
-git clean -x -f
 
 git reset
 用于取消对工作目录的某些提交，或者未提交的修改。
@@ -695,7 +697,7 @@ $ git config --global user.email "yishilin@gmail.com"
 
 
 
-
+git clone -b
 
 
 

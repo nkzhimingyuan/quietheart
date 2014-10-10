@@ -1,0 +1,36 @@
+关于repo的理解
+注：repo用于管理多个git项目，同一产品可能包含多个git项目，不同的git项目集合，可能形成不同产品，通过repo可以实现方便的管理。repo主要包含repo配置信息、以及repo所管理的git项目集合。
+对于所有git管理的项目，例如mygitproject，其中mygitproject/.git是git目录（或git库）；mygitproject/中除.git之外的内容为git工作目录，来自相应git目录中的某个版本。
+对于所有repo管理的项目，例如myrepoproject，其中myrepoproject/.repo是repo目录（或repo库）；myrepoproject/中除.repo之外的内容为repo工作目录，来自相应repo目录中的某个版本。
+
+1、repo init：
+作用是下载或更新好repo配置和脚本集（相当于对repo配置和repo脚本集进行git pull，但是它还额外做了更多的事情），repo配置和脚本本身又是由git管理的，repo配置指定使用哪些git项目，脚本是repo命令本身的实现。
+在空目录中执行这个目录后，会生成一个.repo目录，查看.repo目录，会看到有如下内容：
+$ls .repo
+manifests/  manifests.git/  manifest.xml  repo/
+另外有一个project.list 文件，对这个文件暂时不知道其中的内容含义。
+
+具体解释如下：
+（*）.repo：此为repo目录，可用于提取相应项目工作目录到外面的repo工作目录。
+（*）.repo/manifests.git：此为repo配置信息的git库，不同版本包含不同配置信息，配置信息大致描述内容见后面。
+（*）.repo/manifests：此为repo配置信息的工作目录（将配置信息的工作目录和相应的实际git目录分离管理，并且配置信息中的.git目录实际只是指向实际git库的软连接），其中可能包含一个或多个xml文件描述的配置。每个xml文件是独立的一套配置，配置内容包括当前repo工作目录包含哪些git项目、所有git项目所处的默认公共分支、以及远端地址等。
+（*）.repo/manifest.xml：repo工作目录中的内容同一时刻只能采用manifests中的一个xml文件做为其配置，该文件就是其软连接，通过init的-m选项指定采用哪个文件；另外，同一xml文件也可能处于manifests库的不同版本或者不同分支，通过init的-b选项指定使用manifests中的哪个分支，每次init命令都会从服务器更新最新的配置。这里通过-m指定的manifests中的xml文件中，有两个需要注意：default.xml是稳定版，default_head.xml是开发版，开发版始终包含最新的内容。
+（*）.repo/repo：此为repo脚本集的git库，用于repo管理所需的各种脚本，repo的所有子命令就是其中的对应脚本实现。该脚本也通过git管理，.repo/repo/.git为对应的git目录。这里包含repo命令所需的所有子命令脚本实现，由python完成（我们可以在.repo/repo/subcmds中看到类似repo的init等的子命令脚本实现，如repo的init子命令即repo init，它由.repo/repo/subcmds/init.py实现），这个目录本身又由git来管理。不同的repo库或者不同版本的repo库，其repo命令实现会有些不同，所以也对应不同的repo脚本集，建议每次采用对应repo项目的最新的repo库做为其repo命令集实现。第一次使用repo时，采用的repo脚本实际是一个简单的repo的引导脚本，它既符合shell语法，又符合python语法，最终会将所需的具体脚本实现下载至最新的.repo/repo中，后面类似"repo init"、"repo sync"等脚本的实现，全都有这里的内容来实现。我们发现.repo/repo/repo，这个文件其实就是当前repo库中最新的repo引导脚本，可供其它没有使用过repo的用户做为repo的引导脚本来使用。
+
+2、repo sync
+作用是下载当前repo配置的所有项目，并生成对应的repo工作目录。执行之后，会看到.repo目录包含如下内容：
+$ls .repo
+manifests  manifests.git  manifest.xml  projects  repo
+还有.repo外面也多出了许多目录。
+
+也就是说，多出了一个projects目录，和.repo外面的许多目录，具体内容如下：
+（*）.repo/projects：此为repo所管理的所有git项目集，包含repo当前配置所指定的所有git项目对应的git目录。不同的清单文件（即manifest.xml）内容，指定不同的git项目集组合，表征不同的项目版本或者项目，而如上所述，manifest.xml文件的内容又由其指向的manifests中的、具体的分支下的、xml文件来决定。
+（*）.repo/../*：此为repo的工作区。在repo目录（即.repo）之外，根据repo配置（即.repo/manifest.xml文件），从.repo/projects/*中提取出指定分支的各个git项目（即.repo/projects中git项目的子集）的工作目录，形成repo工作目录，可供开发使用。其中每个git工作目录中的.git只是指向.repo/projects/*的软连接，在repo工作目录中的某个git工作目录更新相应的git库，其实最终会更新到.repo/projects中对应的git库。刚刚repo sync之后，当前工作目录不处于任何分支，其中的修改只能本地保存无法提交至远端，若想提交工作，需要先创建一个分支保存工作内容。
+
+3、关于分支
+以上描述，有几个分支的概念需要明确。
+（1）repo分支：这里通过repo init -b <branch>，中的-b所指定的分支，是manifests的分支，不同分支，其中的文件清单内容有所不同。
+
+（2）清单文件指定的分支：通过清单文件manifest.xml中的default实体的revision属性，指定版本库默认的分支为revision属性值，该属性值做为repo sync之后工作目录中所有git项目的公共起点分支，也就是说，该manifest对应所有的git项目都有一个以revision属性值为名的分支，repo sync之后，在任意一个repo工作目录下的git库中，使用git branch或者repo start创建的分支，都是基于该git库中revision属性值为名的分支来创建。目前我们的工作方式是将这个分支设置为和repo分支类似的名字。
+
+（3）git分支：除了repo管理的用于repo配置的repo分支，和用于设置工作目录起点的清单文件分支，每个工作目录对应的git库，也可设置自己的工作分支，和平时使用git时的含义一样。

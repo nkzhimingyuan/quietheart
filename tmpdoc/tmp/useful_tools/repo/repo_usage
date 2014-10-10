@@ -75,7 +75,7 @@ $repo init  -u git://172.16.1.31/manifest.git
 *选择指定的文件清单：
 $repo  init  -u git://172.16.1.31/manifest.git –m android.xml
 这样选择的是android.xml里面的配置，执行之后，.repo/manifest.xml便指向.repo/manifests/android.xml
-这里，指定的清单文件是以xml格式组织的，它里面指明了repo将要管理哪些git库。一个清单库可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本。
+这里，指定的清单文件是以xml格式组织的，它里面指明了repo将要管理哪些git库。一个清单库可以包含多个清单文件和多个分支，每个清单文件和分支都有对应的版本。同时，这条命令也会更新manifests库，这一点相当于在manifests中使用git pull。
 举个例子：
 remote元素，定义了名为korg的远程版本库，其库的基址为git：//172.16.1.31/；
 default元素，设置各个项目默认远程版本库为korg，默认的的分支为gingerbread-exdroid-stable。当然各个项目(project元素)还可以定义自己的remote和revision覆盖默认的配置；
