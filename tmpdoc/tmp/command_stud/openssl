@@ -80,3 +80,8 @@ http://www.inconteam.com/software-development/41-encryption/55-aes-test-vectors#
 参考：
 http://blog.csdn.net/g710710/article/details/7259011
 http://linux.chinaunix.net/techdoc/net/2006/08/04/937500.shtml
+
+  对于AES-CBC算法，input buffer的长度和output buffer的长度的问题，可以总结如下：
+1.	如果输入buffer的长度不是16的倍数,那么处理时需要有padding的动作，那么output buffer的长度就会增加；
+2.	如果输入buffer的长度是16的倍数，那么input buffer的长度和output buffer的长度是一致的；
+
