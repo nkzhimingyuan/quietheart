@@ -1,0 +1,67 @@
+通常来说文件分为文本和二进制文件两大类，文本文件的编辑很容易，Windows下的notepad、UltraEdit都很好用，二进制文件的编辑在Windows下也有很多工具，UltraEdit也不错，但是Linux下呢？今天终于发现了一个好方法，但是最终出处找不到了。
+
+ 
+
+首先创建一个二进制文件：
+
+[oracle@logserver tmp]$ echo -n "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz" > test.bin 
+[oracle@logserver tmp]$ cat test.bin 
+ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz[oracle@logserver tmp]$ 
+
+注意echo 一定要跟上 -n 选项，否则会被自动加上一个换行行，再用vim打开 test.bin 
+
+[oracle@logserver tmp]$ vim -b test.bin 
+
+vim 的 -b 选项是告诉 vim 打开的是一个二进制文件，不指定的话，会在后面加上 0x0a ，即一个换行符。
+在命令模式下键入：
+:%!xxd 
+
+如果 vim 后面没有加 -b 选项就会出现可恶的 0x0a：
+如果有 -b 选项就不会有这种情况：
+然后进入编辑模式改，改就是了，我将A、B对应的41、42改成61、62，将a、b对应的61、62改成41、42。
+回到命令模式输入：
+:%!xxd -r 
+此时可以发现AB和ab的位置互换了。
+最后在命令模式中输入 :wq 保存退出即可。
+
+参考：http://www.cnblogs.com/killkill/archive/2010/06/23/1763785.html
+
+
+
+
+
+
+
+reference   http://thinkingcafe.cn/blog/2009/09/502/
+
+
+对于二进制文件的编辑，windows下有一款很优秀的软件winhex，会让你的生活非常简单。但是到了linux下面似乎没有专门的二进制编辑器，但是大家不要忘了vim！
+虽然vim并不是针对二进制编辑而设计，但是通过技巧也可让vim成为很好用的二进制编辑器。
+现在假设我要把磁盘/dev/sda上1第一个扇区（也就是mbr和硬盘分区表所在的位置）dump出来并进行查看和编辑。
+
+?View Code BASH
+12345 #用dd先把硬盘前512byte的数据dump出来$ sudo dd if=/dev/sda of=sda.mbr bs=512 count=1# 用带-b参数的vim打开它，-b告诉vim打开的是二进制文件，# vim就不会自作聪明地做一些额外的处理，比如自动换行等等$ vim -b sda.mbr 
+
+进入vim刚开是显示的是乱码，不用着急。在vim下输入 :%!xxd，马上就会显示如下：
+
+0000000: eb48 90d0 bc00 7c8e c08e d8be 007c bf00  .H....|......|..0000010: 06b9 0002 fcf3 a450 681c 06cb fbb9 0400  .......Ph.......0000020: bdbe 0780 7e00 007c 0b0f 8510 0183 c510  ....~..|........0000030: e2f1 cd18 8856 0055 c646 1105 c646 0302  .....V.U.F...F..0000040: ff00 0020 0100 0000 0002 fa90 90f6 c280  ... ............0000050: 7502 b280 ea59 7c00 0031 c08e d88e d0bc  u....Y|..1......0000060: 0020 fba0 407c 3cff 7402 88c2 52be 7f7d  . ..@|<.t...R..}0000070: e834 01f6 c280 7454 b441 bbaa 55cd 135a  .4....tT.A..U..Z0000080: 5272 4981 fb55 aa75 43a0 417c 84c0 7505  RrI..U.uC.A|..u.0000090: 83e1 0174 3766 8b4c 10be 057c c644 ff01  ...t7f.L...|.D..00000a0: 668b 1e44 7cc7 0410 00c7 4402 0100 6689  f..D|.....D...f.00000b0: 5c08 c744 0600 7066 31c0 8944 0466 8944  \..D..pf1..D.f.D00000c0: 0cb4 42cd 1372 05bb 0070 eb7d b408 cd13  ..B..r...p.}....00000d0: 730a f6c2 800f 84ea 00e9 8d00 be05 7cc6  s.............|.00000e0: 44ff 0066 31c0 88f0 4066 8944 0431 d288  D..f1...@f.D.1..00000f0: cac1 e202 88e8 88f4 4089 4408 31c0 88d0  ........@.D.1...0000100: c0e8 0266 8904 66a1 447c 6631 d266 f734  ...f..f.D|f1.f.40000110: 8854 0a66 31d2 66f7 7404 8854 0b89 440c  .T.f1.f.t..T..D.0000120: 3b44 087d 3c8a 540d c0e2 068a 4c0a fec1  ;D.}<.T.....L...0000130: 08d1 8a6c 0c5a 8a74 0bbb 0070 8ec3 31db  ...l.Z.t...p..1.0000140: b801 02cd 1372 2a8c c38e 0648 7c60 1eb9  .....r*....H|`..0000150: 0001 8edb 31f6 31ff fcf3 a51f 61ff 2642  ....1.1.....a.&B0000160: 7cbe 857d e840 00eb 0ebe 8a7d e838 00eb  |..}.@.....}.8..0000170: 06be 947d e830 00be 997d e82a 00eb fe47  ...}.0...}.*...G0000180: 5255 4220 0047 656f 6d00 4861 7264 2044  RUB .Geom.Hard D0000190: 6973 6b00 5265 6164 0020 4572 726f 7200  isk.Read. Error.00001a0: bb01 00b4 0ecd 10ac 3c00 75f4 c300 0000  ........<.u.....00001b0: 0000 0000 0000 0000 3b8f 3a37 0000 8001  ........;.:7....00001c0: 0100 83fe 3f3d 3f00 0000 7f32 0f00 0000  ....?=?....2....00001d0: 013e 83fe ffff be32 0f00 79e7 9b03 00fe  .>.....2..y.....00001e0: ffff 83fe ffff 371a ab03 5d62 2719 00fe  ......7...]b'...00001f0: ffff 82fe ffff 947c d21c edc8 4900 55aa  .......|....I.U.这样就成为了一个常见的二进制编辑器的样子了吧。左边是二进制显示的数据，右边是把二进制转化为字符的形式，对于无法转化的字符就表示为点号。
+注意如果你要修改二进制文件的话，一定要编辑左边的hex, 改写右边的文本没用，这个和Ultraedit有所不同。
+编辑好了再“:%!xxd -r”转换回文本模式”:wq”存盘退出。 如果你没有-r就保存，vim就会用屏幕上的hex+text格式保存的，切记要-r回来再保存。
+
+最后让我们再总结一些vim编辑二进制文件的方法：
+1. 用vim -b 打开文件
+2. 使用:%!xxd命令
+3. 编辑文件（只编辑右边字符不会保存）后使用:%xxd -r
+4. :wq保存并退出文件
+
+对于一些.o或者.exe的文件，大家也可以在.vimrc中加入下面代码，vim自动用二进制方式显示文件，并且编辑后也可以直接:wq，vim会自动执行:%xxd -r再保存退出。
+
+?View Code VI
+12345678910 augroup Binary  au!  au BufReadPre   *.o,*.exe let &bin=1  au BufReadPost  *.o,*.exe if &bin | %!xxd  au BufReadPost  *.o,*.exe set ft=xxd | endif  au BufWritePre  *.o,*.exe if &bin | %!xxd -r  au BufWritePre  *.o,*.exe endif  au BufWritePost *.o,*.exe if &bin | %!xxd  au BufWritePost *.o,*.exe set nomod | endifaugroup END 
+
+参考http://6xudonghai.blog.163.com/blog/static/33640629200983012140975/?fromdm&fromSearch&isFromSearchEngine=yes
+
+
+
+
+
