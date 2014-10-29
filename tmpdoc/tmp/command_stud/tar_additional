@@ -68,3 +68,9 @@ tar -czvf 生成tgz,可以用tar xvf解压不必用tar -xzvf，现在tar可以�
 
 #tar -czvf testTar.tgz -C testTar .
 这样打包的只是testTar，没有包含testTar的最外层。也就是说，解压的时候会直接将testTar的内容解压到当前目录，而不是一个独立的testTar目录。
+
+解包txz格式的：
+tar -xJvf myfile.txz
+
+打包成txz格式的：
+tar -cJvf myfile.txz myfile
