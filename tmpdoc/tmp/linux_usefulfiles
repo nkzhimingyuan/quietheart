@@ -12,6 +12,8 @@
 */proc/kallsyms里面的是内核提供的函数，在内核模块中只能使用这里面的函数。
 */proc/sys/kernel/pid_max可以通过修改这个文件来改变内核中进程pid最大的数目。
 */proc/interrupts:描述当前中断信息。第一列是注册了中断函数的中断号，后面是各个cpu上该中断次数，然后是中断处理控制器名称，然后是产生这个中断的中断线上的所有设备。
+*/proc/filesystems:显示当前系统支持的所有文件系统。
+
 */etc/mtab和/etc/fstab
 参考：http://www.blogjava.net/sunzhong/articles/286760.html
 /etc/fstab文件的作用

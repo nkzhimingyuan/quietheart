@@ -1,0 +1,130 @@
+
+*安装qemu：
+$sudo apt-get install qemu-system
+
+*创建镜像：
+$qemu-img create -f vmdk disk.img 256M
+这里，-f指定虚拟机硬盘镜像的格式，vmdk表示兼容vmware3和4，其它格式参考man手册，之后便指定虚拟硬盘文件名和虚拟硬盘大小。
+
+*启动iso镜像：
+$qemu-system-i386 -hda disk.img -cdrom ./tinycore-current.iso -boot d
+这里，使用-hda指定硬盘镜像，使用-cdrom指定光盘，使用-boot指定使用光盘启动（参数值d），其它启动方式（如硬盘启动为c、还可指定网络启动等）参见man手册的-boot选项。这条命令可以用来将安装光盘的系统安装到虚拟硬盘中。
+启动镜像阶段，可以使用如下快捷键：
+松开虚拟机对鼠标的捕获：Ctrl+Alt
+全屏和非全屏的切换：Ctrl+Alt+f
+其它参见man。
+
+*从硬盘镜像启动：
+$qemu-system-i386 -hda disk.img -m 1G
+这里假设在虚拟硬盘中安装了reactos操作系统（一个开源的类windows操作系统），使用-hda指定虚拟硬盘文件，-m指定内存大小，不用-boot指定从哪里启动，因为默认从虚拟硬盘启动。
+
+
+=======
+**从指定的镜像和文件系统启动：
+假设从本地linux的系统启动。过程如下：
+*创建虚拟硬盘：
+$qemu-img create -f vmdk hda.img 26M
+
+*建立文件系统？：
+$sudo dd if=/dev/zero of=rootfs.img bs=1M count=100
+$sudo mkfs.ext2 -N 512 rootfs.img
+
+*启动系统
+$qemu-system-x86_64 -kernel vmlinuz-3.11.0-15-generic -initrd initrd.img-3.11.0-15-generic -hda hda.img -append "root=/dev/ram"
+反正起来了，其实不用指定-hda也行。这里-kernel指定kernel，-initrd指定启动系统需要的初始化文件系统，这两个文件拷贝自/boot目录。
+
+参考：
+http://www.360doc.com/content/14/0522/16/16285334_379967507.shtml
+**
+
+*指定启动内核和文件系统：
+将生成的bzImage和initramfs_data.cpio拷贝到一个文件夹下面，执行以下命令：
+qemu -kernel bzImage -hda initramfs_data.cpio  -append "root=/dev/hda"
+
+*从硬盘启动
+qemu-system-i386 -hda /dev/sda -m 2G
+这里，假设机器上装有双系统，引导区在sda1上，启动时有选择系统的启动菜单。这条命令会读取引导区，并在qemu中启动，但是实践发现，选择windows7的时候，无法启动windows7，或许是内存不足？
+
+
+QEMU 使用教程
+QEMU 它可以工作在 linux,windows,FreeBSD 和苹果系统上.大家根本都不用担心支持问题.因为其没有 UI 界面,纯粹是命令行的操作,和 vmware 等虚拟平台软件相比,它比较难于上手.但是它却对我们掌握系统模块有很大的帮助,所有的外设和一些常用模块,需要我们手动的去使用命令来挂载才能有效运行.很多人都觉得先学习 QEMU 后,再去用 vmware 等模拟软件,更易上手.废话就不多说了.按照老规矩,兜兜先 show 下效果图.
+
+下面对其的使用做一下介绍:
+1.命令参数:
+-L dir :指向 BIOS 和 VGA BIOS 所在目录(一般我们使用”-L .”)
+-hda/-hdb/-hdd/-hdc “文件名” :虚拟机系统安装文件
+-cdrom “文件名” :使用“文件名”作为光盘景象（文件应该是 ISO 类型）
+
+*Windows 下，可以通过下列命令使用实体光盘: -cdrom //./x: -> x 代表光盘名称/位置
+例如:-cdrom //./e: -> 使用 E:\ 为光盘*
+-fda/-fdb “文件名” :使用“文件名”作为磁盘 0/1 镜像.
+-boot [a|b|c] :使用磁盘 a，光盘 d，或者硬盘 c 启动.
+-m 容量 :指定内存的大小，单位是 MB.
+-soundhw c1,?: 使用声卡设备.
+-soundhw ? :列出所有可使用的声卡 -soundhw all 使用全部声卡
+-usb :允许使用 usb 设备.
+-usbdevice :名字 添加一个 usb 设备“名字”.
+-net nic :创建一块新的网卡. 
+上面就是常用的命令参数.如果对各种操作系统下的应用有迷惑,可以到这里查找相关资料
+
+
+2.虚拟系统安装(以在 windows 下使用 QEMU 来安装 windows XP 为例),安装之前,准备三样东西:
+2.1.Qemu for windows(兜兜目前使用的版本为:qemu-0.9.0-windows,现在网速慢,
+文件 6M 多,等明天速度快点再传.各位请搜一下吧.)
+
+2.2.qemuwith-kqemu-support 点此下载
+kqemu 是 Fabrice Bellare 专门为 linux 核心而设计的开源加速附加程序,目的就是为了加快 qemu 的子系统运行速度.在 X86 的硬件平台上模拟 x86 的操作系统可以飙到真实机器速度.直接用 QEMU 来安装或者运行系统的话,速度会很慢.用 kqemu 会改善很多.右键点击 kqemu.inf，选择“安装”，然后在 CMD 窗口下输入命令：net start kqemu。服务启动后即可运行启动 qemu 的命令，注意，启动命令中要加参数-kernel-kqemu.把压缩包里的两个文件:qemu:qemu-img:覆盖到 qemu-0.9.0-windows 的文件夹的同名文件.
+
+2.3.一份 windows XP 的镜像安装文件.ISO 文件.
+
+
+3.万事具备了.我们开始吧.首先把 qemu for win 的包解到某个目录下.兜兜以 F 根目录为例:
+F:\qemu
+然后在 F 盘下新建目录:F:\system-virtual\windowsxp\ 该目录用来存放接下来要安装的 windowsxp 系统文件的.
+3.1.打开 CMD 窗口,切到 F 盘的 qemu 程序目录下.然后输入命令:
+qemu-img create -f qcow f:\system-virtual\windowsxp\windowsxp.img 8G
+create 参数表示创建 windowsxp 所需的虚拟磁盘
+-f 参数表示创建文件格式，后边所带的子参数 qcow 表示 qemu 镜像格式
+f:\system-virtual\windowsxp\windowsxp.img 为虚拟磁盘文件放置路径及名称
+8G 为所创建虚拟机文件的上限大小，也就是虚拟机的硬盘大小 
+
+建议大家不要创建 qcow 格式的磁盘文件.它生成的磁盘文件比较占用空间.该命令是常规命令.兜兜建议使用 VMWare 的磁盘文件来安装虚拟系统.命令如下:
+qemu-img create -f vmdk f:\system-virtual\windowsxp\windowsxp.vmdk 8G
+两种创建方式,在使用的过程中没有很大区别,唯一的区别在于磁盘占用率上.随各位自己喜欢咯.
+
+3.2.好了.给虚拟系统的硬盘分区已经分割好了.什么?什么时候分割的?晕!上面那一步创建虚拟磁盘文件就是为新的系统准备空间啊!接下来开始安装系统了.大家可以简单回想一下,在裸机或者 vmware 中安装新系统,需要拿些东西:
+光驱,指定内存大小,指定硬盘空间
+
+需要指定 USB,声卡..等等吗?暂时不需要的.看下面这段安装时候要用到的命令吧.
+qemu.exe -kernel-kqemu -L . -m 512 -hda f:\system-virtual\windowsxp\windowsxp.vmdk -cdrom e:\my-lab\iso\windowsxp-en.iso -boot d
+-kernel-kqemu 加快 qemu 速度
+-m 512 为虚拟机分配 512m 内存
+-hda f:\system-virtual\windowsxp\windowsxp.vmdk 系统安装到哪里去,就安装
+到刚才建立的虚拟磁盘文件中去
+-cdrom e:\my-lab\iso\windowsxp-en.iso 为 qemu 的虚拟光驱中插入光盘镜像
+-boot d 设置 qemu 的 BIOS 由光驱启动.
+把这段命令输入到记事本里,然后保存在 qemu for win 程序的根目录里.命名为:Install windowsxp.bat .完全是为了方便才这样的,如果你不嫌麻烦,你可以直接进入 CMD,切到 qemu for win 的目录下,输入那一段命令,就会弹出窗口,开始 windowsxp 的安装过程了.
+
+安装的问题,兜兜就不赘述了.这里要注意的是,当你把鼠标定位到了虚拟 windowsxp 窗口中,要把鼠标释放出来,需要按组合键: ctrl+alt.
+
+
+4.安装过程完毕了.关闭虚拟机.你可以直接 XX 关闭,建议按照 windows 的正常关机流程来操作,当虚拟系统关闭,窗口也会消失.接下来,该编写虚拟系统运行的命令了.同样的,建议使
+用批处理的方式.免得每次要启动系统都需要输入一大串命令. 
+命令其实和安装雷同.如下:
+qemu.exe -kernel-kqemu -L . -m 512 -hda f:\system-virtual\windowsxp\windowsxp.vmdk -boot c
+保存到 qemu for win 程序目录下,命名为:start windowsxp.bat
+如果你想挂载光驱,在命令里补上-cdrom 就可以了.当然,你如果需要挂载其他的硬件设备,加上相应的参数即可.参数在文上部有说明.
+
+
+
+
+
+
+------
+参考资料：
+http://www.ibm.com/developerworks/cn/linux/l-qemu/
+
+
+----
+将生成的bzImage和initramfs_data.cpio拷贝到一个文件夹下面，执行以下命令：
+qemu -kernel bzImage -hda initramfs_data.cpio  -append "root=/dev/hda"
