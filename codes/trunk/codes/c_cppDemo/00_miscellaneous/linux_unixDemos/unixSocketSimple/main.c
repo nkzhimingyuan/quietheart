@@ -1,4 +1,5 @@
 /*This code shows a simple process communicate with unix socket and select.
+Infact, we can use socketpair for unnamed socket between parent/child process.
 */
 #include <stdio.h>
 #include <unistd.h>
