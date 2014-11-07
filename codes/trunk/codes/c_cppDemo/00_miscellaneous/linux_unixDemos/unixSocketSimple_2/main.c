@@ -20,12 +20,11 @@ This code shows a simple process communicate with unix socket and select.
 static struct sockaddr_un s_server_addr;
 static struct sockaddr_un s_client_addr;
 
-static int UnixDomainInit();
-static int UnixDomainServerSocket(int *socketFd);
-static int UnixDomainClientSocket(int *socketFd);
+static int UnixDomainInit(struct sockaddr_un *sockAddr, char *socketPath);
+static int UnixDomainSocketBinded(int *socketFd, struct sockaddr_un *bindAddr);
 static int UnixDomainSocketRecvFrom(int sockFd, struct sockaddr_un *remoteAddr, void *pBuf, unsigned int bufSize, int timeout);
 static int UnixDomainSocketSendTo(int sockFd, struct sockaddr_un *remoteAddr, void *pBuf, unsigned int bufSize, int timeout);
-static int UnixDomainUnInit();
+static int UnixDomainUnInit(struct sockaddr_un *sockAddr);
 
 int main(int argc, char *argv[])
 {
@@ -34,20 +33,34 @@ int main(int argc, char *argv[])
 	int sockfd;
 	pid_t pid;
 
-	UnixDomainInit();
-
 	pid = fork();
 	if (pid > 0)
 	{//parent
 		char recvStr[128];
 		char sendStr[] = {"hello world, from server."};
 
-		ret = UnixDomainServerSocket(&sockfd);
+		ret = UnixDomainInit(&s_server_addr, SOCKET_SERVER_PATH);
+		if (ret < 0)
+		{
+			ret = -1;
+			fprintf(stderr, "server domain init error.\n");
+			goto end;
+		}
+
+		ret = UnixDomainInit(&s_client_addr, SOCKET_CLIENT_PATH);
+		if (ret < 0)
+		{
+			ret = -1;
+			fprintf(stderr, "client domain init error.\n");
+			goto parent_end;
+		}
+
+		ret = UnixDomainSocketBinded(&sockfd, &s_server_addr);
 		if (ret < 0 || sockfd < 0)
 		{
 			ret = -1;
-			fprintf(stderr, "socket init error.\n");
-			goto end;
+			fprintf(stderr, "server socket binded error.\n");
+			goto parent_end;
 		}
 
 		n = UnixDomainSocketRecvFrom(sockfd, &s_client_addr, recvStr, sizeof(recvStr), WAIT_FOREVER);
@@ -56,7 +69,7 @@ int main(int argc, char *argv[])
 		{
 			ret = -1;
 			fprintf(stderr, "recv from server error.\n");
-			goto end;
+			goto parent_end;
 		}
 
 		n = UnixDomainSocketSendTo(sockfd, &s_client_addr, sendStr, sizeof(sendStr), NO_WAIT);
@@ -65,10 +78,14 @@ int main(int argc, char *argv[])
 		{
 			ret = -1;
 			fprintf(stderr, "send to client error.\n");
-			goto end;
+			goto parent_end;
 		}
 
 		waitpid(pid, NULL, 0);
+
+		UnixDomainUnInit(&s_client_addr);
+parent_end:
+		UnixDomainUnInit(&s_server_addr);
 
 	}
 	else if (0 == pid)
@@ -76,21 +93,37 @@ int main(int argc, char *argv[])
 		char sendStr[] = {"hello world, from client."};
 		char recvStr[128] = {'\0'};
 
-		ret = UnixDomainClientSocket(&sockfd);
-		if (ret < 0 || sockfd < 0)
+		ret = UnixDomainInit(&s_client_addr, SOCKET_CLIENT_PATH);
+		if (ret < 0)
 		{
 			ret = -1;
-			fprintf(stderr, "socket init error.\n");
+			fprintf(stderr, "client domain init error.\n");
 			goto end;
 		}
 
-		n = UnixDomainSocketSendTo(sockfd, &s_server_addr, sendStr, sizeof(sendStr), NO_WAIT);
+		ret = UnixDomainInit(&s_server_addr, SOCKET_SERVER_PATH);
+		if (ret < 0)
+		{
+			ret = -1;
+			fprintf(stderr, "server domain init error.\n");
+			goto child_end;
+		}
+
+		ret = UnixDomainSocketBinded(&sockfd, &s_client_addr);
+		if (ret < 0 || sockfd < 0)
+		{
+			ret = -1;
+			fprintf(stderr, "client socket binded error.\n");
+			goto child_end;
+		}
+
+		n = UnixDomainSocketSendTo(sockfd, &s_server_addr, sendStr, sizeof(sendStr), 5000);
 		printf("In Client Send count:%d, send content:%s\n", n, sendStr);
 		if (n < 0)
 		{
 			ret = -1;
 			fprintf(stderr, "send to client error.\n");
-			goto end;
+			goto child_end;
 		}
 
 		n = UnixDomainSocketRecvFrom(sockfd, &s_server_addr, recvStr, sizeof(recvStr), 5000);
@@ -99,8 +132,12 @@ int main(int argc, char *argv[])
 		{
 			ret = -1;
 			fprintf(stderr, "recv from server error.\n");
-			goto end;
+			goto child_end;
 		}
+
+		UnixDomainUnInit(&s_server_addr);
+child_end:
+		UnixDomainUnInit(&s_client_addr);
 
 	}
 	else
@@ -110,11 +147,10 @@ int main(int argc, char *argv[])
 
 
 end:
-	UnixDomainUnInit();
 	return ret;
 }
 
-static int UnixDomainInit()
+static int UnixDomainInit(struct sockaddr_un *sockAddr, char *socketPath)
 {
 	int ret = 0;
 	int sockFd = -1;
@@ -129,27 +165,19 @@ static int UnixDomainInit()
 	}
 	closedir(pdir);
 
-	s_server_addr.sun_family = AF_LOCAL;
-	sprintf(s_server_addr.sun_path, "%s", SOCKET_SERVER_PATH);
-
-	s_client_addr.sun_family = AF_LOCAL;
-	sprintf(s_client_addr.sun_path, "%s", SOCKET_CLIENT_PATH);
-
-	if (0 == access(SOCKET_SERVER_PATH, F_OK))
+	if (0 == access(socketPath, F_OK))
 	{/*check if the file already exists, as we can't bind a socket to an existing file.*/
-		fprintf(stderr, "Warning server socket file Already exists, don't bind more than once.\n");
+		fprintf(stderr, "Warning socket file:%s Already exists, don't bind more than once.\n", socketPath);
 	}
 
-	if (0 == access(SOCKET_CLIENT_PATH, F_OK))
-	{/*check if the file already exists, as we can't bind a socket to an existing file.*/
-		fprintf(stderr, "Warning client socket file Already exists, don't bind more than once.\n");
-	}
+	sockAddr->sun_family = AF_LOCAL;
+	sprintf(sockAddr->sun_path, "%s", socketPath);
 
 end:
 	return ret;
 }
 
-static int UnixDomainServerSocket(int *socketFd)
+static int UnixDomainSocketBinded(int *socketFd, struct sockaddr_un *bindAddr)
 {
 	int ret = 0;
 	int sockFd = -1;
@@ -161,12 +189,15 @@ static int UnixDomainServerSocket(int *socketFd)
 		return -1;
 	}
 
-	if (-1 == bind(sockFd, (const struct sockaddr *)&s_server_addr, sizeof(s_server_addr)))
+	if(bindAddr != NULL)
 	{
-		fprintf(stderr, "bind error:%d, %s, path:%s\n", errno, strerror(errno), s_server_addr.sun_path);
-		ret = -1;
-		close(sockFd);
-		goto end;
+		if (-1 == bind(sockFd, (const struct sockaddr *)bindAddr, sizeof(struct sockaddr_un)))
+		{
+			fprintf(stderr, "bind error:%d, %s, path:%s\n", errno, strerror(errno), bindAddr->sun_path);
+			ret = -1;
+			close(sockFd);
+			goto end;
+		}
 	}
 
 	/*
@@ -187,30 +218,6 @@ static int UnixDomainServerSocket(int *socketFd)
 	}
 	*/
 	*socketFd = sockFd;
-end:
-	return ret;
-}
-
-static int UnixDomainClientSocket(int *socketFd)
-{
-	int ret = 0;
-	int sockFd = -1;
-	sockFd = socket(AF_LOCAL, SOCK_DGRAM, 0);
-	if (-1 == sockFd)
-	{
-		fprintf(stderr, "create socket.%d, %s\n", errno, strerror(errno));
-		ret = -1;
-		goto end;
-	}
-	*socketFd = sockFd;
-
-	if (-1 == bind(sockFd, (const struct sockaddr *)&s_client_addr, sizeof(s_client_addr)))
-	{
-		fprintf(stderr, "bind error:%d, %s, path:%s\n", errno, strerror(errno), s_client_addr.sun_path);
-		ret = -1;
-		close(sockFd);
-		goto end;
-	}
 end:
 	return ret;
 }
@@ -298,12 +305,11 @@ end:
     return ret; 
 }
 
-static int UnixDomainUnInit()
+static int UnixDomainUnInit(struct sockaddr_un *sockAddr)
 {
 	int ret = 0;
 	
-	remove(s_server_addr.sun_path);//remove the socket file.
-	remove(s_client_addr.sun_path);//remove the socket file.
+	remove(sockAddr->sun_path);//remove the socket file.
 end:
 	return ret;
 }
