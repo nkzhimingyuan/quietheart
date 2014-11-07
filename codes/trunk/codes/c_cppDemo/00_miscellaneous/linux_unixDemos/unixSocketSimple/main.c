@@ -93,7 +93,7 @@ static int UnixDomainSocketInit(void)
 	sprintf(socketPath, "%s%s.%d", DEFAULT_DIR, "mysocket",getpid());
 	pFile = fopen(socketPath, "w+");
 	if (pFile == NULL)
-	{
+	{//This file no need exist in fact.
 		fprintf(stderr, "create file %d, %s.\n", errno, strerror(errno));
 		ret = -1;
 		goto end;
@@ -119,7 +119,7 @@ static int UnixDomainSocketCreate()
 		return -1;
 	}
 
-	remove(s_UnAddr.sun_path);
+	remove(s_UnAddr.sun_path);//can't bind to an existing file.
 	if (-1 == bind(sockFd, (const struct sockaddr *)&s_UnAddr, sizeof(s_UnAddr)))
 	{
 		fprintf(stderr, "bind error:%d, %s, path:%s\n", errno, strerror(errno), s_UnAddr.sun_path);
