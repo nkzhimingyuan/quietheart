@@ -7,18 +7,8 @@ This code shows a simple process communicate with unix socket and select.
 #include <sys/un.h> 
 #include <errno.h> 
 
-#include "myunixsocket.h"
-
-#define DEBUG 1
-#if DEBUG==1
-#define dbg() fprintf(stderr, "Line:%d, func:%s\n", __LINE__, __FUNCTION__)
-#else
-#define dbg()
-#endif
-
 #define SOCKET_SERVER_PATH "/tmp/my_server_socket"
 #define SOCKET_CLIENT_PATH "/tmp/my_client_socket"
-
 
 int main(int argc, char *argv[])
 {
@@ -30,21 +20,11 @@ int main(int argc, char *argv[])
 	char sendStr[] = {"hello world, from client."};
 	char recvStr[128] = {'\0'};
 
-	ret = UnixDomainInit(&s_server_addr, SOCKET_SERVER_PATH);
-	if (ret < 0)
-	{
-		ret = -1;
-		fprintf(stderr, "server domain init error.\n");
-		goto end;
-	}
+	s_server_addr.sun_family = AF_LOCAL;
+	sprintf(s_server_addr.sun_path, "%s", SOCKET_SERVER_PATH);
 
-	ret = UnixDomainInit(&s_client_addr, SOCKET_CLIENT_PATH);
-	if (ret < 0)
-	{
-		ret = -1;
-		fprintf(stderr, "server domain init error.\n");
-		goto end;
-	}
+	s_client_addr.sun_family = AF_LOCAL;
+	sprintf(s_client_addr.sun_path, "%s", SOCKET_CLIENT_PATH);
 
 	sockFd = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sockFd < 0)
@@ -67,17 +47,16 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "connect error, path:%s\n",  s_server_addr.sun_path);
 		close(sockFd);
 		ret = -1;
-		goto end;
+		goto socket_end;
 	}
 
-	dbg();
     n = send(sockFd, sendStr, sizeof(sendStr), MSG_DONTWAIT); 
 	printf("In Client Send count:%d, send content:%s\n", n, sendStr);
     if (n != sizeof(sendStr)) 
     { 
         fprintf(stderr, "sockFd[%d] send fail, count:%d, error:%s.\n", sockFd, n, strerror(errno)); 
 		ret = -1;
-		goto end;
+		goto socket_end;
     } 
 
 	n = recv(sockFd, recvStr, sizeof(recvStr), 0); 
@@ -86,11 +65,13 @@ int main(int argc, char *argv[])
 	{ 
 		fprintf(stderr, "sockFd[%d] recvfrom fail.\n", sockFd); 
 		ret = -1;
-		goto end;
+		goto socket_end;
 	} 
 
-end:
+socket_end:
+	close(sockFd);
 	remove(SOCKET_CLIENT_PATH);
+
+end:
 	return ret;
 }
-

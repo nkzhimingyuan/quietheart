@@ -6,6 +6,8 @@
 1、bind不能对已有文件进行bind
 2、如果使用accept，则不能使用数据报方式，而应当使用例如stream方式的socket
 3、使用面向连接的方式，不用sendto/recvfrom
+4、这里mysocket.c是一个冗余文件，供更多使用时参考。
+5、accept会阻塞。
 
 程序编译和运行：
 $make
@@ -16,3 +18,4 @@ $./server
 
 $./client
 再启动客户端。
+
