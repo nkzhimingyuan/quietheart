@@ -6,7 +6,7 @@
  * or disclose of this information in whole or in part is prohibited
  *
  * -------------------------------------------------------------------------*/
-/**@file tpapi_shm_test.cpp
+/**@file sendfd.c
  *@brief brief description
  *@author miracle.lv
  *@date 2014-11-6
@@ -26,19 +26,6 @@
 #include <pthread.h>
 #include <errno.h> 
 #include <fcntl.h>
-
-/*
-Server:
-create socket, bind socket(if path not exists).
-1.thread1 write fd, send fd to socket, and set fd to pipe, and exists.
-2.thread2 listen socket, accept for fd receive.
-or (exists)
-
-
-Client:
-1.read pipe to get socket path, connect to socket and get the fd.
-*/
-
 
 /************* Declaration and Macros*************/
 /*For debug*/
@@ -66,7 +53,7 @@ Client:
 
 #define NOTIFY_CONDITION(value) do {\
 	pthread_mutex_lock(&daemoLock);\
-	condition = 1;\
+	condition = value;\
 	pthread_mutex_unlock(&daemoLock);\
 	pthread_cond_signal(&socketReady);\
 }while(0)
