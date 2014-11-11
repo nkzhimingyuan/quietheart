@@ -1,0 +1,19 @@
+This demo used to send file descriptor through socket.
+and also shows how to use pipe, and thread wait condition.
+
+ you can build and run it in linux as following:
+ $make sendfd LDLIBS=-lpthread
+ $>./mytest
+ $mkfifo ./fifo
+ $./sendfd
+
+ If there's no problem, you can see "TEST PASS".
+
+ The demo work like the following:
+ 1.Server create a daemon thread, which initialize the socket(whose path name is pidxxx_socket) and run into accept loop on the socket.
+ 2.Server's main thread do the normal work, and when it needs to send fd, it send pid and fd_to_send value to fifo.
+ 3.Client receive server's pid and fd_to_send value from fifo, and connect to the server daemon's socket(whose path is pidxxx_socket) and send fd_to_send value back to server through socket.
+ 4.Server daemon thread receive fd_to_send value(which should still available as a file descriptor for server) from socket the client send back.
+ 5.Server daemon send the fd_to_send(not only the value) through socket to client.
+ 6.Client receive the fd_to_send as fd_to_receive which is available for it.
+
