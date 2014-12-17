@@ -45,36 +45,37 @@ int main(int argc, char *argv[])
 	AES_KEY aes;
 	byte key[AES_BLOCK_SIZE];        // AES_BLOCK_SIZE = 16
 	byte iv[AES_BLOCK_SIZE];        // init vector
-	byte* input_string;
-	byte* encrypt_string;
-	byte* decrypt_string;
+	byte* input_data;
+	byte* encrypt_data;
+	byte* decrypt_data;
 	char hexString[(LEN << 1 ) + 1] = {0};
 	unsigned int i;
 
+	/************test encrypt*************/
 	// set the input string
-	input_string = (unsigned char*)malloc(LEN);
-	if (input_string == NULL)
+	input_data = (unsigned char*)malloc(LEN);
+	if (input_data == NULL)
 	{
-		fprintf(stderr, "Unable to allocate memory for input_string\n");
+		fprintf(stderr, "Unable to allocate memory for input_data\n");
 		goto end;
 	}
 	//6bc1bee22e409f96e93d7e117393172a
-	input_string[0]=0x6b;
-	input_string[1]=0xc1;
-	input_string[2]=0xbe;
-	input_string[3]=0xe2;
-	input_string[4]=0x2e;
-	input_string[5]=0x40;
-	input_string[6]=0x9f;
-	input_string[7]=0x96;
-	input_string[8]=0xe9;
-	input_string[9]=0x3d;
-	input_string[10]=0x7e;
-	input_string[11]=0x11;
-	input_string[12]=0x73;
-	input_string[13]=0x93;
-	input_string[14]=0x17;
-	input_string[15]=0x2a;
+	input_data[0]=0x6b;
+	input_data[1]=0xc1;
+	input_data[2]=0xbe;
+	input_data[3]=0xe2;
+	input_data[4]=0x2e;
+	input_data[5]=0x40;
+	input_data[6]=0x9f;
+	input_data[7]=0x96;
+	input_data[8]=0xe9;
+	input_data[9]=0x3d;
+	input_data[10]=0x7e;
+	input_data[11]=0x11;
+	input_data[12]=0x73;
+	input_data[13]=0x93;
+	input_data[14]=0x17;
+	input_data[15]=0x2a;
 
 	// Generate AES 128-bit key
 	//2b7e151628aed2a6abf7158809cf4f3c
@@ -101,12 +102,6 @@ int main(int argc, char *argv[])
 		goto end_mallocinput;
 	}
 
-	if (AES_set_encrypt_key(key, 128, &aes) < 0) 
-	{
-		fprintf(stderr, "Unable to set encryption key in AES\n");
-		goto end_mallocinput;
-	}
-
 	/*Generate AES 128-bit iv*/
 	//000102030405060708090A0B0C0D0E0F
 	iv[0]=0x00;
@@ -126,52 +121,78 @@ int main(int argc, char *argv[])
 	iv[14]=0x0E;
 	iv[15]=0x0F;
 
-	// alloc encrypt_string
-	encrypt_string = (unsigned char*)malloc(LEN);    
-	if (encrypt_string == NULL)
+	// alloc encrypt_data
+	encrypt_data = (unsigned char*)malloc(LEN);    
+	if (encrypt_data == NULL)
 	{
-		fprintf(stderr, "Unable to allocate memory for encrypt_string\n");
+		fprintf(stderr, "Unable to allocate memory for encrypt_data\n");
 		goto end_mallocinput;
 	}
 
 	// encrypt (iv will change)
-	AES_cbc_encrypt(input_string, encrypt_string, LEN, &aes, iv, AES_ENCRYPT);
+	AES_cbc_encrypt(input_data, encrypt_data, LEN, &aes, iv, AES_ENCRYPT);
 
-	// alloc decrypt_string
-	decrypt_string = (unsigned char*)malloc(LEN);
-	if (decrypt_string == NULL)
+	/************test decrypt*************/
+	// alloc decrypt_data
+	decrypt_data = (unsigned char*)malloc(LEN);
+	if (decrypt_data == NULL)
 	{
-		fprintf(stderr, "Unable to allocate memory for decrypt_string\n");
+		fprintf(stderr, "Unable to allocate memory for decrypt_data\n");
+		goto end_mallocencrypt;
+	}
+
+	/*Generate AES 128-bit iv again*/
+	//000102030405060708090A0B0C0D0E0F
+	iv[0]=0x00;
+	iv[1]=0x01;
+	iv[2]=0x02;
+	iv[3]=0x03;
+	iv[4]=0x04;
+	iv[5]=0x05;
+	iv[6]=0x06;
+	iv[7]=0x07;
+	iv[8]=0x08;
+	iv[9]=0x09;
+	iv[10]=0x0A;
+	iv[11]=0x0B;
+	iv[12]=0x0C;
+	iv[13]=0x0D;
+	iv[14]=0x0E;
+	iv[15]=0x0F;
+
+	if (AES_set_decrypt_key(key, 128, &aes) < 0)
+	{
+		fprintf(stderr, "Unable to set decryption key in AES\n");
 		goto end_mallocencrypt;
 	}
 
 	// decrypt
-	AES_cbc_encrypt(encrypt_string, decrypt_string, LEN, &aes, iv, AES_DECRYPT);
+	AES_cbc_encrypt(encrypt_data, decrypt_data, LEN, &aes, iv, AES_DECRYPT);
 
-	bytesToHexString(input_string, LEN, hexString);
-	printf("input_string:%s, should be:%s\n", hexString, "6bc1bee22e409f96e93d7e117393172a");
+	bytesToHexString(input_data, LEN, hexString);
+	printf("input_data:%s, should be:%s\n", hexString, "6bc1bee22e409f96e93d7e117393172a");
 	memset(hexString, 0, sizeof(hexString));
 
 	bytesToHexString(key, LEN, hexString);
 	printf("key:%s, should be:%s\n", hexString, "2b7e151628aed2a6abf7158809cf4f3c");
 	memset(hexString, 0, sizeof(hexString));
 
-	bytesToHexString(encrypt_string, LEN, hexString);
+	bytesToHexString(encrypt_data, LEN, hexString);
 	printf("encrypted string:%s, should be:%s\n", hexString, "7649abac8119b246cee98e9b12e9197d");
 	memset(hexString, 0, sizeof(hexString));
 
-	bytesToHexString(decrypt_string, LEN, hexString);
+	bytesToHexString(decrypt_data, LEN, hexString);
 	printf("decrypted string:%s, should be:%s\n", hexString, "6bc1bee22e409f96e93d7e117393172a");
 	memset(hexString, 0, sizeof(hexString));
 
 end_mallocdecrypt:
-	free(decrypt_string);
+	free(decrypt_data);
 
 end_mallocencrypt:
-	free(encrypt_string);
+	free(encrypt_data);
 
 end_mallocinput:
-	free(input_string);
+	free(input_data);
 
 end:
 	return 0;
