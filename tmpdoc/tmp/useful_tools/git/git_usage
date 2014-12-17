@@ -72,6 +72,10 @@ $git checkout -b my_branch <tag_xxxx>
 *恢复之前的某次提交：
 $git checkout <commitid>
 这样，会将当前的HEAD指向<commitid>所处的提交，通过'git log'可发现，执行之后，log中commitid之后的提交消失了，但是如果记住<commitid>的话，可以将之前的HEAD回复，所以要注意checkout之后log无法找到之前的最新head。
+
+*恢复之前的某次提交的某个目录：
+$git checkout <commitid> -- <dir>
+如果文件应该不需要"--"。
 **
 
 ***push相关
@@ -910,3 +914,12 @@ $git pull review master:master
 git checkout -b br1
 
 你在更新到远端还是要切换到master
+
+
+不慎在错误的目录执行了git checkout -- .，导致最近的更改都被恢复成commit时的状态。
+ 是否有命令可以找回丢失的更改呢？
+ 
+被添加到 index 的内容可以找回（但是只有文件内容，没有文件名信息，需要人工辨别），没有被添加的部分已经被删除了，你只能求助于另外的办法（备份文件、反删除恢复等）。
+
+如果没有stage那些更改，你就不能恢复了。
+如果stage(add)过，还可能可以恢复（前提是不能运行git gc）： 使用 git fsck --lost-found 找到 dangling blob，然后使用 git show <sha_id> 看看这个文件是不是你之前被恢复的。

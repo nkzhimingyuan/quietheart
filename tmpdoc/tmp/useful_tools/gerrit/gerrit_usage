@@ -909,3 +909,41 @@ $git commit
 
 $git push
 
+
+
+
+gerrit服务器合并冲突导致无法合并的解决方法2：
+这里是基于repo的，其实实质一样。
+feature1已经push之后，由于与上游服务器最新版本冲突导致未被merge之时：
+一般都是由于其他人修改了和你一样的文件导致。
+（1）更新最新代码
+$repo forall -c 'git reset --hard'
+$repo init xxx
+$repo sync
+
+（2）创建临时工作分支保存最新修改
+$cd xxx/feature1/xxx
+$repo start  pushxxx .
+$git pull
+其实这里的git pull如果在repo sync不久，则一般没有什么更新，除非有人在期间有改动。
+
+（3）获取之前有冲突change的补丁，并应用cherry pick，例如：
+$git fetch xxx && git cherry-pick FETCH_HEAD
+因为之前合并时，服务器已经由于冲突无法合并了，所以这一步一定会出现冲突。
+
+（4）解决冲突，重新提交
+$git status .
+$vim ...
+...搜索"==="可看到冲突标记，修改之...
+$git add -u .
+...就是add, rm之类的，将冲突的文件添加或者删除...
+$git commit -c FETCH_HEAD
+
+（5）再次上传至服务器
+$git pull
+$commit --amend
+...这里，如果之前成功了，那么这里会提示你修改发生冲突的提交的日志信息，没有这个提示则需要注意了...
+$git push xxx
+
+
+至此，便在原来的change id基础上打上新的解决了冲突的patch set。
