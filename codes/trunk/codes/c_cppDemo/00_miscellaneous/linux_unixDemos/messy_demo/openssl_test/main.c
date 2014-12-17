@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 	}
 
 	// encrypt (iv will change)
-	AES_cbc_encrypt(input_data, encrypt_data, LEN, &aes, iv, AES_ENCRYPT);
+	AES_cbc_encrypt(input_data, encrypt_data, LEN, &aes, iv, AES_ENCRYPT);//the iv changes to the encrypt_data also after here.
 
 	/************test decrypt*************/
 	// alloc decrypt_data
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 	}
 
 	// decrypt
-	AES_cbc_encrypt(encrypt_data, decrypt_data, LEN, &aes, iv, AES_DECRYPT);
+	AES_cbc_encrypt(encrypt_data, decrypt_data, LEN, &aes, iv, AES_DECRYPT);//the iv changes to the encrypt_data also after here.
 
 	bytesToHexString(input_data, LEN, hexString);
 	printf("input_data:%s, should be:%s\n", hexString, "6bc1bee22e409f96e93d7e117393172a");
