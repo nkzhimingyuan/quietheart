@@ -10,6 +10,23 @@ $git init --share
 创建的git库可以被人共享。
 **
 
+**git clone
+*复制库到本地：
+$git clone xxx
+这样会将xxx所指向的git库复制一份到本地。
+注意，这里复制的库用"git branch"看不到远端（来源）的分支信息，想看远端的分支信息用"git branch -a"。详见"git branch"命令。
+复制之后，本地包含两个部分：
+.git目录中包含库信息。
+.git外面的工作区。
+其实.git就包含了所有的内容，我们传输文件时只需要目录中有一个.git目录，然后git reset --hard就可恢复出head的内容。
+
+*复制裸库，不含工作区：
+git clone --bare
+我们使用git clone --bare只clone其中的.git目录，其余内容可以用git reset --hard在本地还原。
+对于本地的git clone，其实默认做的硬链接，速度很快。使用git clone --bare xxx .git会瞬间将xxx直接clone到当前目录的.git形成裸库，通过git reset --hard恢复其内容。
+**
+
+
 **branch分支操作
 git branch [--color[=<when>] | --no-color] [-r | -a] [--list] [-v [--abbrev=<length> | --no-abbrev]] [(--merged | --no-merged | --contains) [<commit>]] [<pattern>...]
 git branch [--set-upstream | --track | --no-track] [-l] [-f] <branchname> [<start-point>]
@@ -34,6 +51,7 @@ origin/albert
 *查看本地和远端分支：
 $git branch -a
 同时查看远端和本地分支，远端分支以红色显示。
+一般git clone之后，如果只用"git branch"则只能看到远端当前的分支，使用这个命令可以看到远端其他的分支，可以切换至这个分支，但如果想在其中进行工作，需要基于此分支创建一个本地的相应分支。
 
 *创建分支：
 $git branch <branch name>
@@ -45,6 +63,10 @@ $git branch -m <old name> <new name>
 *基于远端分支创建相应的本地分支：
 $git branch -track origin/albert
 新版git不用-track选项，会根据远端分支名知道加上track选项，创建之后，相应的分支在本地创建，会与远端分支关联。这样pull会知道如何合并分支，以及获知各种其他远端跟踪的信息（如本地比远端多提交了几个版本等）。
+
+*基于某个点创建分支：
+git branch <branch name> <start point>
+这里，branch name就是你的分支名，start point可以是一次提交，或者一个分支名等等，标识你的当前分支是基于此进行创建（衍生）的。
 **
 
 **checkout分支操作
@@ -302,19 +324,7 @@ $git clean -x -f
 
 未整理：
 ========================================================
-**git clone
-*复制库到本地：
-$git clone xxx
-这样会将xxx所指向的git库复制一份到本地。复制之后，本地包含两个部分：
-.git目录中包含库信息。
-.git外面的工作区。
-其实.git就包含了所有的内容，我们传输文件时只需要目录中有一个.git目录，然后git reset --hard就可恢复出head的内容。
 
-*复制裸库，不含工作区：
-git clone --bare
-我们使用git clone --bare只clone其中的.git目录，其余内容可以用git reset --hard在本地还原。
-对于本地的git clone，其实默认做的硬链接，速度很快。使用git clone --bare xxx .git会瞬间将xxx直接clone到当前目录的.git形成裸库，通过git reset --hard恢复其内容。
-**
 
 **git difftool
 *git difftool查看不同版本的代码如下：

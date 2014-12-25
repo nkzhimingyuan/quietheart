@@ -8,7 +8,7 @@ set ic
 set sc
 set si
 filetype on
-
+syntax on
 color ron
 
 "whether show cscope content in quick fix.
