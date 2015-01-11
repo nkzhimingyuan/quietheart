@@ -8,30 +8,30 @@ tagflush()
 		ctags -R
 }
 
-cd /home/miracle.lv/androidLRepo/mtk5593-asis-intake-dev/device/mediatek_common/vm_linux/chiling/app_if && 
+cd device/mediatek_common/vm_linux/chiling/app_if && 
 {
-	echo good1
 	tagflush
-	ln -s `pwd`/cscope.out ~/cscope_app_if.out
+	echo tags for "$(pwd)" ok
+	#ln -s `pwd`/cscope.out ~/cscope_app_if.out
 	cd -
-	[ -f cscope_app_if.out ] || mv ~/cscope_app_if.out .
+	#[ -f cscope_app_if.out ] || mv ~/cscope_app_if.out .
 }
 
 
-cd /home/miracle.lv/androidLRepo/mtk5593-asis-intake-dev/device/tpvision/common/plf/tpapi &&
+cd device/tpvision/common/plf/tpapi &&
 {
-	echo good2
 	tagflush
-	ln -s `pwd`/cscope.out ~/cscope_tpapi_if.out
+	echo tags for "$(pwd)" ok
+	#ln -s `pwd`/cscope.out ~/cscope_tpapi_if.out
 	cd -
-	[ -f cscope_tpapi_if.out ] || mv ~/cscope_tpapi_if.out .
+	#[ -f cscope_tpapi_if.out ] || mv ~/cscope_tpapi_if.out .
 }
 
-cd /home/miracle.lv/androidLRepo/mtk5593-asis-intake-dev/device/tpvision/tvsoc/tvsoc_mtk &&
+cd device/tpvision/tvsoc/tvsoc_mtk &&
 {
-	echo good3
 	tagflush
-	ln -s `pwd`/cscope.out ~/cscope_tpapi_src.out
+	echo tags for "$(pwd)" ok
+	#ln -s `pwd`/cscope.out ~/cscope_tpapi_src.out
 	cd -
-	[ -f cscope_tpapi_src.out ] || mv ~/cscope_tpapi_src.out .
+	#[ -f cscope_tpapi_src.out ] || mv ~/cscope_tpapi_src.out .
 }

@@ -933,3 +933,8 @@ git checkout -b br1
 
 如果没有stage那些更改，你就不能恢复了。
 如果stage(add)过，还可能可以恢复（前提是不能运行git gc）： 使用 git fsck --lost-found 找到 dangling blob，然后使用 git show <sha_id> 看看这个文件是不是你之前被恢复的。
+
+
+问题：
+如何查看分支基于那个分支？
+reset之后如何查看reset之前最新的head？
