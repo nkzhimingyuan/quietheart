@@ -1,0 +1,72 @@
+通过串口传输文件可以不用借助U盘以及网络等设备在开发板和PC之间传输文件。
+下面给出在Windows上通过Tera Term串口工具，使用lrz&lsz实现在PC和开发板之间传输文件的方法。
+其它串口工具类似。
+一、生成lrz&lsz工具
+1.获取源代码
+下载网址参考：
+https://github.com/gooselinux/lrzsz
+https://ohse.de/uwe/software/lrzsz.html
+http://download.chinaunix.net/download.php?id=12772&ResourceID=6293
+文件名称：
+lrzsz-0.12.20.tar.gz
+
+2.交叉编译、静态链接
+生成的工具依赖开发平台，需要进行交叉编译，首先需要知道相应交叉编译工具的环境变量路径。
+解压之后，如下：
+（1）生成Makefile
+$./configure
+此命令通过GNU Auto config机制生成Makefile。
+
+（2）配置交叉编译环境
+因为该工具的GNU Auto config机制的configure脚本写的不完善，所以需要手动修改生成的Makefile，实现交叉编译，生成目标板传输所需工具（即lrz和lsz）。过程如下：
+a.添加当前所用交叉编译相关配置
+修改lib/Makefile和src/Makefile中相应的环境变量：
+CC=/mtkoss/gnuarm/neon_4.8.2_2.6.35_cortex-a9-ubuntu/x86_64/bin/armv7a-mediatek482_001_neon-linux-gnueabi-gcc
+这样可编译生成相应于目标板的二进制文件，如有链接及其他Build bins等工具设置，则做类似修改。
+
+b.添加静态链接选项，避免和减少生成的二进制文件对额外库的依赖：
+为lib/Makefile和src/Makefile添加gcc选项：
+找到Makefile中的CFLAGS变量，为其追加-static选项：
+CFLAGS+=-static
+如Makefile中使用g++等等其他编译工具，则向其他类似相关选项变量（如CPPFLAGS)追加。
+
+c.编译链接
+分别依次在lib和src中执行：
+$make
+然后在src中便生成相应于目标板的lsz和lrz，lsz用于开发板向PC发送文件，lrz用于PC向开发板传输文件。
+
+
+3.通过U盘将src中的lsz&lrz拷贝到开发板中的可执行文件路径
+如可在刚刚烧写完之后，顺便将U盘中的lrz和lsz拷贝到：/system/bin
+之后便可只通过串口，不用借助U盘通过后面方式，在PC和开发板之间传输文件。
+
+4.传输文件
+这里假设串口终端程序为windows上的Tera Term和Linux上的minicom，其他终端工具一般会有类似选项。
+（1）PC->目标板：
+假设将PC上某文件传输到目标板上的/data目录中。
+a.目标板端：
+$cd /data
+$lrz
+
+b.PC端：
+File->Transfer->ZMODEM->Send...
+选择在PC中，你要发送到板子上的文件。
+之后文件会传输到开发板的当前（/data）目录中。
+
+（2）目标板->PC
+a.目标板端：
+$lsz <发送的文件名>
+
+b.PC端：
+File->change directory-><选择你想保存的路径>
+File->Transfer->ZMODEM->Receive
+
+5、其它和补充
+对于PC->目标板：
+这里测试传输速度大概11KB/s左右，所以如果太大的文件，还是通过U盘传输比较快。
+如果传输的是可执行文件，需要注意运行时添加可执行权限。
+
+对于目标板->PC：
+这里测试传输速度大概也11KB/左右，所以如果太大的文件，还是通过U盘传输比较快。
+
+以上可以用md5sum来检测传输文件的完整性。

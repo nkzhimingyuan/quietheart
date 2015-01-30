@@ -542,4 +542,13 @@ ifconfig wlan0 0.0.0.0
 ifconfig wlan0 down
 =======
 
+查看wifi设备：
+shell@philips_MT5593FHT_EU:/ # iw dev
+phy#1
+        Interface p2p0
+                ifindex 4
+                type managed
+        Interface wlan0
+                ifindex 3
+                type managed
 

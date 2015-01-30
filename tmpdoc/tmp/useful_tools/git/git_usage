@@ -149,7 +149,7 @@ push操作的远端目标库。这个参数可以是一个url，或者远端名�
 
 **使用举例
 $git push
-类似"git push <remote>"，这里的<remote>是当前分支的远端（如果没有为当前分支配置remote，也可说是origin）。
+类似"git push <remote>"，这里的<remote>是当前分支的远端（如果没有为当前分支配置remote，也可说是origin）。这样，本地提交的内容将会推送到远端的相应分支（不一定是远端当前切换的分支，默认是本地在远端的源分支）。
 
 $git push origin
 没有额外的配置信息的话，这个命令和"git push origin :"一样，是push所有"match"的分支到origin。当没有<refspec>的时候，这个命令默认的行为可以通过对remote在config文件中的push选项进行配置。例如：想要默认仅仅把当前的分支push到origin，那么就使用“git config remote.origin.push HEAD”，任何合法的<refspec>都可以被配置成"git push origin"的默认行为。
